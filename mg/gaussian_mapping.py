@@ -466,7 +466,6 @@ class GaussianMapper:
         sample_kf_index_list = []
 
         self.iteration+=1
-        print("OPTIMIZE")
         if self.SP_poses.shape[2] <= kf_cnt_threshold + kf_cnt_sample:
             sample_kf_index_list = list(range(self.SP_poses.shape[2]))
         else:
