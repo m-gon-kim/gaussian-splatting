@@ -101,10 +101,12 @@ def MTF_Mapping(tracking_result_q, mapping_result_q):
             mapping_result = mapper.Map(instance)
             if mapping_result[0][0]:
                 mapping_result_q.put([True, mapping_result])
-        else:
-            mapping_result = mapper.FullBACall()
-            if mapping_result[0][2]:
-                mapping_result_q.put([True, mapping_result])
+            if mapping_result[0][4]:
+                mapper.Map()
+        # else:
+        #     mapping_result = mapper.FullBACall()
+        #     if mapping_result[0][2]:
+        #         mapping_result_q.put([True, mapping_result])
 
 
 def GaussianMappingTest(mapping_result_q):

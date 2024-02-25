@@ -27,6 +27,7 @@ class GaussianMapper:
             self.uv_mid = None
         self.SetProjectionMatrix()
         self.pipe = PipelineParams(ArgumentParser(description="Training script parameters"))
+        self.Flag_GS_Pause = False
 
         self.SetIntrinsics()
         self.SetSPMaskPoints()
@@ -458,6 +459,8 @@ class GaussianMapper:
                 del img
         torch.cuda.empty_cache()
     def OptimizeGaussian(self, Flag_densification):
+        if self.Flag_GS_Pause:
+            return
         if self.SP_poses.shape[2] == 0:
             return
         lambda_dssim = 0.2
@@ -550,6 +553,8 @@ class GaussianMapper:
         if (not status[0]) and (not status[1]) and (not status[2]):
             return
 
+        self.Flag_GS_Pause = status[4]
+
         if status[0] or status[1]:
             sensor = mapping_result[1]
             rgb = sensor[0]
@@ -605,6 +610,9 @@ class GaussianMapper:
                     self.full_proj_transform_list[i] = full_proj_transform.detach()
                     self.world_view_transform_list[i] = world_view_transform.detach()
                     self.camera_center_list[i] = camera_center.detach()
+            if status[3]:
+                self.FullOptimizeGaussian(True)
+                print("DENSIFICATION!")
 
 
         return
