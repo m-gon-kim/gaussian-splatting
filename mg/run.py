@@ -95,7 +95,6 @@ if __name__ == '__main__':
     tracking_result_q = mp.Queue()
     mapping_result_q = mp.Queue()
 
-    # EXAMPLE: TUM, REPLICA, SCANNET
     dataset_class = Dataset()
     dataset = dataset_class.GetDataset()
 

@@ -554,7 +554,6 @@ class GaussianMapper:
 
 
     def Visualize(self):
-        # print("Viz len: ", self.SP_poses.shape[2])
         if self.SP_poses.shape[2] > 0:
 
             # Fixed camera position for visualization
