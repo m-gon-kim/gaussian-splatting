@@ -95,7 +95,6 @@ class TumDataset:
 
         return [fx, fy, cx, cy]
 
-
     def ReturnData(self, index):
         file_name = f'{str(index).zfill(5)}.png'
         d_file_name = f'{str(index).zfill(5)}.tiff'
