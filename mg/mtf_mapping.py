@@ -211,7 +211,6 @@ class MTFMapper:
         cam_kp_mask = torch.zeros(len(cam_kp), dtype=torch.bool).to(self.device)
         index_2D_3D = torch.full((1, len(cam_kp)), -1, dtype=torch.int32, device=self.device).squeeze()
 
-        print("match set:", len(matches))
         match_cntr = 0
         cntr = 0
         for match_set in matches:
@@ -269,6 +268,7 @@ class MTFMapper:
         self.pointclouds_desc = torch.cat((self.pointclouds_desc, descriptor_torch), dim=0)
 
         self.index_2D_3D.append(index_2D_3D.detach())
+        print("prject usual ends")
         # 5번 과정 완료
 
 
@@ -374,9 +374,9 @@ class MTFMapper:
             score = self.SimilarityBOW(bow_desc, bow_neighbor)
             if bow_score_min > score:
                 bow_score_min = score
-        if bow_score_min < 0.67:  # 휴리스틱
-            bow_score_min = 0.67
-
+        print("Detect Loop BOW", current_idx, bow_score_min)
+        if bow_score_min < 0.65:  # 휴리스틱
+            bow_score_min = 0.65
         # loop candidate 확보
         loop_candidate = []
         max_score = -1
@@ -429,10 +429,24 @@ class MTFMapper:
             return False, -1, -1
 
         else:
-            match2d2d_candidate_list_score = sorted(match2d2d_candidate_list_score, key=lambda x: x[1], reverse=True)
+            match2d2d_candidate_list = []
+            match2d2d_candidate_list_score_tmp = []
+            match2d2d_candidate_list_score = sorted(match2d2d_candidate_list_score, key=lambda x: x[0], reverse=True)
+            prev = match2d2d_candidate_list_score[0][0]+1
+            for x in match2d2d_candidate_list_score:
+                if prev - x[0] == 1:
+                    prev = x[0]
+                    match2d2d_candidate_list_score_tmp.append(x)
+                    match2d2d_candidate_list.append(x[0])
+                else:
+                    break
 
-            print("match2d2d_candidate_list", current_idx, match2d2d_candidate_list)
-            return result, match2d2d_candidate_list, match2d2d_candidate_list_score[0][0]  # , oldest_loop_frame
+
+            match2d2d_candidate_list_score_tmp = sorted(match2d2d_candidate_list_score_tmp, key=lambda x: x[1], reverse=True)
+
+
+            print("match2d2d_candidate_list", current_idx, match2d2d_candidate_list, match2d2d_candidate_list_score_tmp)
+            return result, match2d2d_candidate_list, match2d2d_candidate_list_score_tmp[0][0]  # , oldest_loop_frame
 
     def DetectLoopOldframe(self, current_idx):
         result = False
@@ -571,18 +585,37 @@ class MTFMapper:
         print("Hard Pose", ref_pose, relative_pose, current_pose)
         return True, current_pose.detach()
 
+    def CompareLoopPose(self, current_pose, loop_pose):
+        trace = torch.matmul(current_pose[:3, :3], loop_pose[:3, :3].t())
+        val = float(trace[0][0] + trace[1][1] + trace[2][2])
+        if val > 3.0:
+            val = 3.0
+        elif val < -1.0:
+            val = -1.0
+        angle = math.acos((val - 1) * 0.5)
+
+        shift_matrix = current_pose[:3, 3] - loop_pose[:3, 3]
+        shift = torch.dot(shift_matrix, shift_matrix)
+
+        print("CompareLoopPose", angle, shift)
+
+        if (angle > 0.2 or shift > 0.1):
+            return True
+        else:
+            return False
     def CheckSuperPixelFrame(self, pose):
         with torch.no_grad():
-            trace = torch.matmul(self.GKF_pose, torch.inverse(pose))
+            trace = torch.matmul(self.GKF_pose[:3, :3], pose[:3, :3].t())
             val = float(trace[0][0] + trace[1][1] + trace[2][2])
-            if val > 1.0:
-                val = 1.0
+            if val > 3.0:
+                val = 3.0
             elif val < -1.0:
                 val = -1.0
-            angle = math.acos((val-1)/2)
+            angle = math.acos((val-1)*0.5)
 
             shift_matrix = self.GKF_pose[:3, 3] - pose[:3, 3]
             shift = torch.dot(shift_matrix, shift_matrix)
+            print("CheckSuperPixelFrame", angle, shift)
         if(angle > 0.5 or shift > 0.5):
             return True
         else:
@@ -821,9 +854,6 @@ class MTFMapper:
                                                          torch.ones((1, pointcloud_seen_from_kf_ctr.shape[1])).to(self.device)), dim=0)
                 keypoints = keypoints[:, cntr_mask]
 
-                # print("POSE PARAM")
-                # print(poses_param[:, :, kf_idx].shape)
-                # print(torch.eye(4).to(self.device)[3, :].shape)
                 pose_from_kf = torch.cat((poses_param[:, :, kf_idx], torch.eye(4).to(self.device)[3, :].unsqueeze(0)), dim=0)
                 world_to_kf = torch.inverse(pose_from_kf)
 
@@ -835,12 +865,13 @@ class MTFMapper:
                 keypoints = keypoints[:, mask]
 
                 loss = torch.norm((keypoints - cam_uv_mask[:2, :]), dim=0)
-                kf_loss = float(torch.sum(loss**2))/float(cam_uv_mask.shape[1])
-                print("LoopBA ", iteration, kf_idx, kf_loss, torch.sum(loss).shape)
+                # if float(keypoints.shape[1]) > 0:
+                kf_loss = float(torch.sum(loss))/float(keypoints.shape[1])
+                # print("LoopBA ", iteration, kf_idx, kf_loss)
                 if loss_max < kf_loss:
                     loss_max = kf_loss
-                loss_total += torch.sum(loss**2)
-                uv_cnt += (cam_uv_mask.shape[1])
+                loss_total += torch.sum(loss)
+                uv_cnt += (keypoints.shape[1])
             if uv_cnt == 0:
                 continue
             loss_avg = loss_total / uv_cnt
@@ -850,7 +881,7 @@ class MTFMapper:
             loss_avg.backward(retain_graph=True)
             optimizer.step()
             optimizer.zero_grad(set_to_none=True)
-            if loss_max < 100.0:
+            if loss_max < 10.0:
                 break
 
         self.pointclouds[:3, :] = pointclouds_param[:3, :].detach()
@@ -1117,7 +1148,6 @@ class MTFMapper:
         cam_kp = self.orb_cuda.convert(orb[0])
         cam_kp_mask = torch.zeros(len(cam_kp), dtype=torch.bool).to(self.device)
         del_position = torch.tensor([999, 999, 999], dtype=torch.float32, device=self.device)
-        print("match set:", len(matches))
         match_cntr = 0
         cntr = 0
         update_cntr = 0
@@ -1131,7 +1161,7 @@ class MTFMapper:
                 if pair.distance < 50: # 관대하게 감
                     diff = projected_uv_zero_mask[:, pair.trainIdx] - torch.tensor([cam_kp[pair.queryIdx].pt],
                                                                                    dtype=torch.float32, device=self.device)
-                    if torch.norm(diff) < 20.0:
+                    if torch.norm(diff) < 100.0:
                         # pixel 좌표계 오차가 적을 때만 True (10px 이내)
                         cam_kp_mask[pair.queryIdx] = True  # matching된 uv를 지칭, 1000개다.
 
@@ -1186,7 +1216,7 @@ class MTFMapper:
         GKF_poses = torch.index_select(self.KF_poses, 2, self.GKF_index_list)
         return [False, False, True, False], [], [], GKF_poses.detach().cpu()
 
-    def CloseLoop(self):
+    def CloseLoop(self, loop_list):
         Flag_GMapping = False
         Flag_First_KF = False
         Flag_BA = True
@@ -1197,6 +1227,8 @@ class MTFMapper:
         ## 연쇄 Projection 수행 해야함
         self.ProjectionPropagationCovis(len(self.KF_bow_list) - 1)
         self.LoopBA(len(self.KF_bow_list) - 1, 100, point_rate=2, pose_rate=2)
+        for loop_kfs in loop_list:
+            self.LoopBuildCovisGraph(len(self.KF_bow_list) - 1, loop_kfs)
 
         with torch.no_grad():
             if self.CheckSuperPixelFrame(self.KF_poses[:, :, -1]):
@@ -1207,8 +1239,11 @@ class MTFMapper:
                 GKF_poses = torch.index_select(self.KF_poses, 2, self.GKF_index_list)
                 Flag_GMapping = True
 
+                rgb_img = self.KF_rgb_list[-1]
+                KF_xyz = self.KF_xyz_list[-1]
+
                 return [Flag_GMapping, Flag_First_KF, Flag_BA, Flag_densification, Flag_GS_PAUSE], \
-                    [rgb_img, KF_xyz], Current_pose.detach().cpu(), GKF_poses.detach().cpu()
+                    [rgb_img, KF_xyz], self.KF_poses[:, :, -1].detach().cpu(), GKF_poses.detach().cpu()
             else:
                 GKF_poses = torch.index_select(self.KF_poses, 2, self.GKF_index_list)
                 return [Flag_GMapping, Flag_First_KF, Flag_BA, Flag_densification, Flag_GS_PAUSE], \
@@ -1288,38 +1323,26 @@ class MTFMapper:
                 self.BuildCovisGraph(current_orb=(current_kp, current_des), ref_idx=len(self.KF_covis_list)-1)
             detect_result, loop_list, best_kf = self.DetectLoopGetOldList(len(self.KF_bow_list)-1)
             if detect_result:
-                print('loop detected...')
-                loop_list_copy = loop_list.copy()
-                loop_list_copy.sort()
+                print("detected!", len(self.KF_bow_list)-1, best_kf)
+                # 씬이 비슷하게 생기면, Loop detection될 수 있다.
+                # ORB Matching을 수행해서, 탐지된 loop가 유효한 camera pose인지 확인한다.
                 lc_result, loop_pose = self.LoopCloseHard(len(self.KF_bow_list)-1, best_kf)
                 if lc_result:
-                    Flag_GS_PAUSE = True
-                    self.KF_poses[:3, :, len(self.KF_bow_list)-1] = loop_pose.detach()[:3, :]
-                    self.ProjectMapToFrame(loop_pose.detach(),(current_kp, current_des), KF_xyz, rgb_img)
+                    if self.CompareLoopPose(current_pose=Current_pose, loop_pose=loop_pose):
+                        #진짜 loop로 판명난 camerea pose인 경우 아래를 수행함.
+                        Flag_GS_PAUSE = True
+                        self.KF_poses[:3, :, len(self.KF_bow_list)-1] = loop_pose.detach()[:3, :]
 
-                    return [Flag_GMapping, Flag_First_KF, Flag_BA, Flag_densification, Flag_GS_PAUSE], [], [], []
+                        self.ProjectMapToFrame(loop_pose.detach(),(current_kp, current_des), KF_xyz, rgb_img)
+                        # 우선 아래를 Return해서, Guassian Splatting을 Pause한다.
+                        return [Flag_GMapping, Flag_First_KF, Flag_BA, Flag_densification, Flag_GS_PAUSE], [], [], [], loop_list.copy()
+                    else:
+                        Current_pose = loop_pose
 
-                    # 아래는 추후 진행 함.
-                    self.LoopCloseHardCovis(len(self.KF_bow_list)-1)
-
-                    ## 연쇄 Projection 수행 해야함
-                    self.ProjectionPropagationCovis(len(self.KF_bow_list)-1)
-                    self.LoopBA(len(self.KF_bow_list) - 1, 100, point_rate=2, pose_rate=2)
-
-                    Flag_densification = True
-                    Flag_BA = True
-                else:
-                    self.ProjectMapToFrame(Current_pose,(current_kp, current_des), KF_xyz, rgb_img)
-                    # self.LocalBA(len(self.KF_bow_list) - 1, 10, point_rate=5, pose_rate=4)
-                    # Flag_BA = True
-            else:
-                self.ProjectMapToFrame(Current_pose,(current_kp, current_des), KF_xyz, rgb_img)
-                # self.LocalBA(len(self.KF_bow_list) - 1, 10, point_rate=5, pose_rate=4)
-                # Flag_BA = True
-
-            print("kf: ", len(self.KF_bow_list)-1)
-            # GaussianKF selection
+            # Loop 가 아닌 경우 아래를 수행한다.
+            self.ProjectMapToFrame(Current_pose,(current_kp, current_des), KF_xyz, rgb_img)
             with torch.no_grad():
+                # Gaussian Splatting에 넣을 키 프레임인지 확인한다.
                 if self.CheckSuperPixelFrame(self.KF_poses[:, :, -1]):
                     self.GKF_pose = self.KF_poses[:, :, -1].detach()
                     self.GKF_index_list = torch.cat(
@@ -1331,8 +1354,7 @@ class MTFMapper:
                     return [Flag_GMapping, Flag_First_KF, Flag_BA, Flag_densification, Flag_GS_PAUSE], \
                         [rgb_img, KF_xyz], self.KF_poses[:, :, -1].detach().cpu(), GKF_poses.detach().cpu()
                 else:
-                    GKF_poses = torch.index_select(self.KF_poses, 2, self.GKF_index_list)
                     return [Flag_GMapping, Flag_First_KF, Flag_BA, Flag_densification, Flag_GS_PAUSE], \
-                        [], [], GKF_poses.detach().cpu()
+                        [], [], []
 
 
