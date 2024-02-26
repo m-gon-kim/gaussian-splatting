@@ -1,5 +1,6 @@
 
 import os
+import numpy as np
 import cv2
 class TumDataset:
     def __init__(self):
@@ -99,5 +100,6 @@ class TumDataset:
         rgb = cv2.imread(f'{self.path}pair/rgb/{file_name}')
         # rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
         gray = cv2.imread(f'{self.path}pair/gray/{file_name}', cv2.IMREAD_GRAYSCALE)
-        d = cv2.imread(f'{self.path}pair/depth/{file_name}', cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH)
+        d = cv2.imread(f'{self.path}pair/depth/{file_name}', cv2.IMREAD_UNCHANGED).astype(np.float32)
+        print("Return ", d, d.dtype)
         return rgb, gray, d

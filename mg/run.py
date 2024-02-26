@@ -108,7 +108,7 @@ if __name__ == '__main__':
     mapping_result_q = mp.Queue()
 
     # EXAMPLE: TUM, REPLICA, SCANNET
-    dataset_type = "SCANNET"
+    dataset_type = "TUM"
     dataset = GetDataset(dataset_type)
     # print(dataset.get_data_len())
 
