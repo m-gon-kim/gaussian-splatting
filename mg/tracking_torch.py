@@ -182,7 +182,6 @@ class TrackerTorch:
         rgb = sensor[0]
         gray = sensor[1]
         depth = sensor[2]
-
         self.Current_gray_gpuMat.upload(gray)
         current_kp, current_des = self.orb.detectAndComputeAsync(self.Current_gray_gpuMat, None)
 
