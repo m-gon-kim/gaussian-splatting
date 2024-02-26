@@ -4,7 +4,7 @@ import numpy as np
 
 class ScannetDataset:
     def __init__(self):
-        self.path = "Z:/TeamFolder/GS_SLAM/ScanNet/scans/scene0059_00/out/"
+        self.path = ""
 
         self.img_pair = []
         self.rgb_list = []
@@ -17,8 +17,6 @@ class ScannetDataset:
         self.d_height = []
         self.rgb_intrinsic = []
         self.d_intrinsic = []
-
-        self.read_info_file(f'{self.path}_info.txt')
 
     def read_info_file(self, filename):
         file = open(filename)
@@ -71,6 +69,7 @@ class ScannetDataset:
         return data_len
 
     def InitializeDataset(self):
+        self.read_info_file(f'{self.path}_info.txt')
         rgb_list = self.get_rgb_list()
         depth_list = self.get_depth_list()
         assert len(rgb_list) == len(depth_list), "Number of files in depth and RGB folders must be the same"

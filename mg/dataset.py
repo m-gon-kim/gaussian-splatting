@@ -5,31 +5,39 @@ from scannet_dataset import ScannetDataset
 class Dataset:
     def __init__(self):
         self.setting = "./setting.txt"
+
+        self.selected_dataset = ""
+        self.path_dict = {}
+        self.ReadSetting()
+
         self.dataset_dict = {
             "TUM": TumDataset(),
             "REPLICA": ReplicaDataset(),
             "SCANNET": ScannetDataset()
         }
 
+    def ReadSetting(self):
+        setting = open(self.setting)
+        for line in setting:
+            if line == '\n':
+                continue
+            key, value = line.strip().split(' = ')
+            if key.strip() == 'selected_dataset':
+                self.selected_dataset += value.strip()
+            elif key.strip() == 'dataset_type':
+                dataset_type = value.strip()
+                # self.path_dict[dataset_type] = None
+            elif key.strip() == 'path':
+                path = value.strip()
+                self.path_dict[dataset_type] = path
 
     def GetDataset(self):
-        setting = open(self.setting)
-        lines = setting.readlines()
+        dataset = self.dataset_dict.get(self.selected_dataset, TumDataset())
+        dataset.path = self.path_dict.get(self.selected_dataset,
+                                          'Z:/TeamFolder/GS_SLAM/TUM_RGBD/rgbd_dataset_freiburg3_long_office_household/')
 
-        keys_dict = {
-            "m_colorWidth": self.rgb_width,
-            "m_colorHeight": self.rgb_height,
-            "m_depthWidth": self.d_width,
-            "m_depthHeight": self.d_height,
-            "m_calibrationColorIntrinsic": self.rgb_intrinsic,
-            "m_calibrationDepthIntrinsic": self.d_intrinsic
-        }
+        return dataset
 
-        for line in lines:
-            key, value = line.strip().split(' = ')
-            if key in keys_dict:
-                if '.' in value:
-                    value_list = map(float, value.split())
-                else:
-                    value_list = map(int, value.split())
-                keys_dict[key] += value_list
+    def InitializeDataset(self):
+        dataset = self.GetDataset()
+        dataset.InitializeDataset()

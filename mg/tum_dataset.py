@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 class TumDataset:
     def __init__(self):
-        self.path = "Z:/TeamFolder/GS_SLAM/TUM_RGBD/rgbd_dataset_freiburg3_long_office_household/"
+        self.path = ""
         self.img_pair = []
         self.rgb_list = []
         self.gray_list = []
