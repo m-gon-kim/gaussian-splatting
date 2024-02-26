@@ -200,7 +200,6 @@ class GaussianMapper:
         self.viz_world_view_transform_list.append(world_view_transform.detach())
         self.viz_camera_center_list.append(camera_center.detach())
 
-        #
         with torch.no_grad():
             pose2 = torch.eye(4, dtype=torch.float32, device=self.device)
             pose2[0, 0] = 1.0
@@ -771,11 +770,8 @@ class GaussianMapper:
             # Draw wireframe camera positions with opencv
             for point in projected_camera_centers:
                 # img_center = np.array([self.width // 2, self.height // 2])
-                projected_camera_center = (int(point[0]), int(point[1]))
-                cv2.circle(np_render_third, projected_camera_center, 2, (0, 0, 255), -1)
-
-            self.CreateCameraWireframePoints()
-            self.DrawCameraWireframes(np_render_third)
+                projected_camera_center = point
+                cv2.circle(np_render_third, tuple(projected_camera_center), 2, (0, 0, 255), -1)
 
             cv2.imshow(f"third", np_render_third)
 
