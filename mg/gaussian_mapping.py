@@ -236,6 +236,7 @@ class GaussianMapper:
         self.viz_world_view_transform_list.append(world_view_transform.detach())
         self.viz_camera_center_list.append(camera_center.detach())
 
+    def SetThridPersonViewCamera(self, pose):
         with torch.no_grad():
             pose2 = torch.eye(4, dtype=torch.float32, device=self.device)
             pose2[0, 0] = 1.0
@@ -359,7 +360,6 @@ class GaussianMapper:
 
         return img
 
-    def CreateInitialKeyframe(self, rgb, SP_xyz, pose, KF_num):
     def CreateCameraWireframePoints(self):
         with torch.no_grad():
             pose = self.SP_poses[:, :, -1]
@@ -708,7 +708,6 @@ class GaussianMapper:
 
 
     def Visualize(self):
-        # print("Viz len: ", self.SP_poses.shape[2])
         if self.SP_poses.shape[2] > 0:
             # # Fixed camera position for visualization
             # for i in range(len(self.viz_world_view_transform_list)):
@@ -759,10 +758,6 @@ class GaussianMapper:
             # print(img)
             np_render_third = torch.permute(img_third, (1, 2, 0)).detach().cpu().numpy()
             cv2.imshow(f"third", np_render_third)
-
-            # # Render camera poses
-            # for i in range(frame):
-            #     proj_camera_center = self.camera_center_list[i]
 
             cv2.waitKey(1)
 
