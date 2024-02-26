@@ -73,6 +73,7 @@ class GaussianMapper:
         self.third_full_proj_transform_list = []
         self.third_world_view_transform_list = []
         self.third_camera_center_list = []
+        self.third_projected_camera_center_list = []
         self.SetVizParams()
         self.loss_dict = {}
 
@@ -224,23 +225,6 @@ class GaussianMapper:
         self.viz_world_view_transform_list.append(world_view_transform.detach())
         self.viz_camera_center_list.append(camera_center.detach())
 
-    def lookAt(self, eye, center, up):
-        f = center - eye
-        f = f / np.linalg.norm(f)
-
-        u = up / np.linalg.norm(up)
-        s = np.cross(f, u)
-        s = s / np.linalg.norm(s)
-
-        u = np.cross(s, f)
-
-        result = np.eye(4)
-        result[0, 0:3] = s
-        result[1, 0:3] = u
-        result[2, 0:3] = -f
-        result[0:3, 3] = -result[0:3, 0:3].dot(eye)
-        return result
-
     def SetThridPersonViewCamera(self, pose):
         with torch.no_grad():
             rel_pose = torch.eye(4, dtype=torch.float32, device=self.device)
@@ -255,6 +239,22 @@ class GaussianMapper:
         self.third_full_proj_transform_list.append(full_proj_transform.detach())
         self.third_world_view_transform_list.append(world_view_transform.detach())
         self.third_camera_center_list.append(camera_center.detach())
+
+    def ProjectThirdPersonViewCameraPositions(self):
+        # Draw wireframe camera with opencv
+        projected_camera_centers = []
+        with torch.no_grad():
+            for i in range(len(self.third_camera_center_list)):
+                cam_center = self.third_camera_center_list[i]
+                cam_center_4d = torch.cat((cam_center, torch.tensor([1], dtype=torch.float32, device=self.device)))
+
+                view_space_pos = torch.matmul(self.third_world_view_transform_list[i], cam_center_4d)
+                clip_space_pos = torch.matmul(self.third_full_proj_transform_list[i], view_space_pos)
+                ndc_space_pos = clip_space_pos / clip_space_pos[3]
+                projected_x = int((ndc_space_pos[0] + 1) * self.width / 2)
+                projected_y = int((1 - ndc_space_pos[1]) * self.height / 2)
+                projected_camera_centers.append((projected_x, projected_y))
+        return projected_camera_centers
 
     def CreateInitialKeyframe(self, rgb, SP_xyz, pose):
         with torch.no_grad():
@@ -589,6 +589,7 @@ class GaussianMapper:
             third_full_proj_transform = self.third_full_proj_transform_list[frame]
             third_w_center = self.third_camera_center_list[frame]
 
+            projected_camera_centers = self.ProjectThirdPersonViewCameraPositions()
 
             render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform, viz_full_proj_transform,
                                    viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
@@ -601,12 +602,15 @@ class GaussianMapper:
                                       third_w_center, self.gaussian, self.pipe, self.background, 1.0)
             img_third = render_third_pkg["render"]
             # print(img)
-            np_render_third = torch.permute(img_third, (1, 2, 0)).detach().cpu().numpy()
-            cv2.imshow(f"third", np_render_third)
+            np_render_third = torch.permute(img_third, (1, 2, 0)).detach().cpu().numpy().copy()
 
-            # # Render camera poses
-            # for i in range(frame):
-            #     proj_camera_center = self.camera_center_list[i]
+            # Draw wireframe camera positions with opencv
+            for point in projected_camera_centers:
+                # img_center = np.array([self.width // 2, self.height // 2])
+                projected_camera_center = point
+                cv2.circle(np_render_third, tuple(projected_camera_center), 2, (0, 0, 255), -1)
+
+            cv2.imshow(f"third", np_render_third)
 
             cv2.waitKey(1)
 
