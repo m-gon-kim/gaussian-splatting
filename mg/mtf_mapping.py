@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch import nn
 class MTFMapper:
-    def __init__(self):
+    def __init__(self, dataset):
         self.width = 640
         self.height = 480
         self.device = "cuda"
@@ -23,8 +23,7 @@ class MTFMapper:
             self.frustum_center = torch.zeros((4,1), dtype=torch.float32, device=self.device)
             self.frustum_radius = 1.6
 
-        self.SetIntrinsics()
-
+        self.SetIntrinsics(dataset)
         # from images
         self.KF_rgb_list = []
         self.KF_xyz_list = []  # Converted from Depth map
@@ -48,11 +47,13 @@ class MTFMapper:
         self.KF_orb_list = []
 
 
-    def SetIntrinsics(self):
-        fx = 535.4
-        fy = 539.2
-        cx = 320.1
-        cy = 247.6
+    def SetIntrinsics(self, dataset):
+        fx, fy, cx, cy = dataset.get_camera_intrinsic()
+        # fx = 535.4
+        # fy = 539.2
+        # cx = 320.1
+        # cy = 247.6
+
 
         self.intr[0][0] = fx
         self.intr[0][2] = cx
@@ -148,8 +149,10 @@ class MTFMapper:
         ones = torch.full((1, global_xyz.shape[1]), 1.0, dtype=torch.float32, device=self.device)
         global_xyz_homo = torch.cat((global_xyz, ones), dim=0)
         index_3D = torch.arange(global_xyz.shape[1]).to(self.device)
+
         projected_xyz = torch.matmul(torch.inverse(init_pose), global_xyz_homo)
         projected_xyz = (projected_xyz / projected_xyz[3, :])[:3, :]
+
 
         # 1번 과정 완료
 
@@ -164,7 +167,6 @@ class MTFMapper:
         pc_desc = pc_desc[near_mask, :]
         index_3D = index_3D[near_mask]
         # 2번 과정 완료
-
 
         # 3. Projection 하고 boundary 체크한다.
         projected_uv = torch.matmul(self.intr, projected_xyz)
@@ -239,7 +241,9 @@ class MTFMapper:
 
         cam_xyz_list = []
         cam_rgb_list = []
+        
         pc_index = self.pointclouds.shape[1]
+
         print("camp_kp_mask", torch.count_nonzero(cam_kp_mask), cam_kp_mask.shape)
         for i in range(cam_kp_mask.shape[0]):
             if not cam_kp_mask[i]:
@@ -269,6 +273,7 @@ class MTFMapper:
 
         self.index_2D_3D.append(index_2D_3D.detach())
         print("prject usual ends")
+
         # 5번 과정 완료
 
 
@@ -333,6 +338,7 @@ class MTFMapper:
         loop_list = []
         essen_list = []
         current_idx = len(self.KF_covis_list)
+
         ref_candidate_list = self.KF_covis_list[ref_idx].copy()
         ref_candidate_list.append(current_idx-1)
 
@@ -353,6 +359,7 @@ class MTFMapper:
                 essen_list.append(ref_candidate)
                 if not (current_idx in self.KF_essen_list[ref_candidate]):
                     self.KF_essen_list[ref_candidate].append(current_idx)
+
         self.KF_covis_list.append(covis_list)
         self.KF_loop_list.append(loop_list)
         self.KF_essen_list.append(essen_list)
@@ -374,6 +381,7 @@ class MTFMapper:
             score = self.SimilarityBOW(bow_desc, bow_neighbor)
             if bow_score_min > score:
                 bow_score_min = score
+
         print("Detect Loop BOW", current_idx, bow_score_min)
         if bow_score_min < 0.65:  # 휴리스틱
             bow_score_min = 0.65
@@ -381,11 +389,13 @@ class MTFMapper:
         loop_candidate = []
         max_score = -1
         best_kf = -1
+
         for j in range(len(self.KF_bow_list) - 1):
             bow_candidate = self.KF_bow_list[j]
             score_new = self.SimilarityBOW(bow_desc, bow_candidate)
             if bow_score_min < score_new and (not (j in loop_neighbor_list)):
                 # BOW 점수를 만족 and covis list에 없는 프레임만 추가
+
                 loop_candidate.append((j, score_new))
                 if max_score < score_new:
                     best_kf = j
@@ -397,7 +407,7 @@ class MTFMapper:
         # loop candidate 중 3개 이상 연속인 경우를 탐색
         loop_candidate.sort()
         cntr_serial = 1
-        match2d2d_candidate_list = []
+        match2d2d_candidate_list = []        
         match2d2d_candidate_list_score = []
         for i in range(1, len(loop_candidate)):
             if loop_candidate[i][0] - loop_candidate[i - 1][0] == 1:
@@ -413,6 +423,7 @@ class MTFMapper:
                         if not (ref_kf[0] in match2d2d_candidate_list):
                             match2d2d_candidate_list_score.append(ref_kf)
                             match2d2d_candidate_list.append(ref_kf[0])
+
                 cntr_serial = 0
         if cntr_serial > 2:
             # orb matching을 한 뒤에, essential, covis graph 등을 생성 한다.
@@ -883,12 +894,13 @@ class MTFMapper:
             optimizer.zero_grad(set_to_none=True)
             if loss_max < 10.0:
                 break
-
+                
         self.pointclouds[:3, :] = pointclouds_param[:3, :].detach()
         self.KF_poses[:3, :, :] = poses_param.detach()[:3, :, :]
         # for i in range(1, len(self.KF_bow_list)):
         #     pose_update = poses_train[:, :, i - 1]
         #     self.KF_poses[:3, :, i] = pose_update.detach()
+
         GKF_poses = torch.index_select(self.KF_poses, 2, self.GKF_index_list)
         self.GKF_pose = GKF_poses[:, :, -1].detach()
         print("LOOP BA ENDS")
@@ -1186,7 +1198,6 @@ class MTFMapper:
             if not cam_kp_mask[i]:
                 #xyz를 카메라 포즈 기준으로 옮긴다
                 pc_index = int(self.index_2D_3D[idx][i].detach().cpu())
-
                 self.index_2D_3D[idx][i] = pc_index
                 cam_pc_index_list.append(pc_index)
                 u, v = cam_kp[i].pt
@@ -1198,7 +1209,16 @@ class MTFMapper:
         self.pointclouds[:3, t_list[:]] = global_xyz_torch[:3, :].detach()
         print("pointclouds_desc", self.pointclouds_desc.shape, self.pointclouds.shape)
 
+                self.index_2D_3D[idx][i] = pc_index
+                cam_pc_index_list.append(pc_index)
+                u, v = cam_kp[i].pt
+                cam_xyz_list.append(xyz[int(v)][int(u)])
 
+        cam_xyz_torch = torch.from_numpy(np.array(cam_xyz_list)).T.to(self.device)
+        global_xyz_torch = self.ConvertCamXYZ2GlobalXYZ(cam_xyz_torch, init_pose).to(self.device)
+        t_list = torch.from_numpy(np.array(cam_pc_index_list)).to(self.device)
+        self.pointclouds[:3, t_list[:]] = global_xyz_torch[:3, :].detach()
+        print("pointclouds_desc", self.pointclouds_desc.shape, self.pointclouds.shape)
 
     def ViewSimilarity(self, pose1, pose2):
         center1 = torch.matmul(pose1, self.frustum_center).detach()
@@ -1255,6 +1275,9 @@ class MTFMapper:
         Flag_densification = False
         Flag_GS_PAUSE = False
 
+        Flag_GS_PAUSE = False
+
+
         if not tracking_result_instance[0]:  # Abort (System is not awake)
             return [Flag_GMapping, Flag_First_KF, Flag_BA, Flag_densification], []
 
@@ -1291,7 +1314,9 @@ class MTFMapper:
                                            torch.eye(4, dtype=torch.float32, device=self.device))
                 self.CreateInitialPointClouds(self.KF_poses[:, :, -1].detach(), KF_xyz, rgb_img, (current_kp, current_des))
                 self.GKF_index_list = torch.cat((self.GKF_index_list, torch.tensor([0], dtype=torch.int32, device=self.device)), dim=0)
+
             return [Flag_GMapping, Flag_First_KF, Flag_BA, Flag_densification, Flag_GS_PAUSE], [rgb_img, KF_xyz], \
+
                 torch.eye(4, dtype=torch.float32).cpu()
 
         else:  # Not first KF
@@ -1321,6 +1346,7 @@ class MTFMapper:
                 Current_pose = torch.matmul(self.KF_poses[:, :, -1].detach(), torch.inverse(KF_relative_pose))
                 self.CreateKeyframe(rgb_img, KF_xyz, (current_kp, current_des), Current_pose)
                 self.BuildCovisGraph(current_orb=(current_kp, current_des), ref_idx=len(self.KF_covis_list)-1)
+
             detect_result, loop_list, best_kf = self.DetectLoopGetOldList(len(self.KF_bow_list)-1)
             if detect_result:
                 print("detected!", len(self.KF_bow_list)-1, best_kf)
@@ -1343,6 +1369,7 @@ class MTFMapper:
             self.ProjectMapToFrame(Current_pose,(current_kp, current_des), KF_xyz, rgb_img)
             with torch.no_grad():
                 # Gaussian Splatting에 넣을 키 프레임인지 확인한다.
+
                 if self.CheckSuperPixelFrame(self.KF_poses[:, :, -1]):
                     self.GKF_pose = self.KF_poses[:, :, -1].detach()
                     self.GKF_index_list = torch.cat(
@@ -1356,5 +1383,6 @@ class MTFMapper:
                 else:
                     return [Flag_GMapping, Flag_First_KF, Flag_BA, Flag_densification, Flag_GS_PAUSE], \
                         [], [], []
+
 
 

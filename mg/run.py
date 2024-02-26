@@ -1,5 +1,9 @@
 
+
+from replica_dataset import ReplicaDataset
 from tum_dataset import TumDataset
+from scannet_dataset import ScannetDataset
+
 # from tracking import Tracker
 from tracking_torch import TrackerTorch
 from mapping import Mapper
@@ -7,26 +11,34 @@ from mtf_mapping import MTFMapper
 from gaussian_mapping import GaussianMapper
 import torch.multiprocessing as mp
 
-def PlayTumDataset(img_pair_q):
-    dataset = TumDataset()
+def GetDataset(dataset_type):
+    dataset_dict = {
+        "TUM": TumDataset(),
+        "REPLICA": ReplicaDataset(),
+        "SCANNET": ScannetDataset()
+    }
+    dataset = dataset_dict.get(dataset_type)
+    # dataset.InitializeDataset()
+    return dataset
+
+def PlayDataset(dataset, img_pair_q):
     begin_index = 1
-    cnt = 2400
+    cnt = dataset.get_data_len()
     awake = True
+
     for index in range(cnt):
         rgb, gray, d = dataset.ReturnData(index + begin_index)
-        # rgb, gray, d = dataset.ReturnData(cnt - index)
         img_pair_q.put([awake, [rgb, gray, d]])
-    # img_pair_q.put([False])
-    # return
 
-def TrackingTorch(img_pair_q, tracking_result_q,):
-    tracker = TrackerTorch()
+def TrackingTorch(dataset, img_pair_q, tracking_result_q):
+    tracker = TrackerTorch(dataset)
+
     frame = 0
 
     awake = True
     while True:
-        if not img_pair_q.empty():
-            frame+=1
+        if not img_pair_q.empty():          
+            frame += 1
             instance = img_pair_q.get()
             # print("Tracking frame: ", frame)
             if not instance[0]:  # Abort (System is not awake)
@@ -38,9 +50,9 @@ def TrackingTorch(img_pair_q, tracking_result_q,):
             if tracking_result[0][0]:  # Mapping is required
                 tracking_result_q.put([awake, tracking_result])
 
+def MTF_Mapping(dataset, tracking_result_q, mapping_result_q):
+    mapper = MTFMapper(dataset)
 
-def MTF_Mapping(tracking_result_q, mapping_result_q):
-    mapper = MTFMapper()
     while True:
         if not tracking_result_q.empty():
             q_size= tracking_result_q.qsize()
@@ -59,9 +71,9 @@ def MTF_Mapping(tracking_result_q, mapping_result_q):
                 mapping_result_q.put([True, loop_close_result])
                 # mapper.PointPtrUpdate()
 
+def GaussianMappingTest(dataset, mapping_result_q):
+    gaussian_mapper = GaussianMapper(dataset)
 
-def GaussianMappingTest(mapping_result_q):
-    gaussian_mapper = GaussianMapper()
     opt_iter = 0
     viz_iter = 0
     while True:
@@ -95,12 +107,17 @@ if __name__ == '__main__':
     tracking_result_q = mp.Queue()
     mapping_result_q = mp.Queue()
 
-    process_play_data = mp.Process(target=PlayTumDataset, args=(img_pair_q,))
+    # EXAMPLE: TUM, REPLICA, SCANNET
+    dataset_type = "SCANNET"
+    dataset = GetDataset(dataset_type)
+    # print(dataset.get_data_len())
+
+    process_play_data = mp.Process(target=PlayDataset, args=(dataset, img_pair_q,))
     # process_tracking = mp.Process(target=TrackingTest, args=(img_pair_q, tracking_result_q,))
-    process_tracking_torch = mp.Process(target=TrackingTorch, args=(img_pair_q, tracking_result_q,))
-    process_mapping = mp.Process(target=MTF_Mapping, args=(tracking_result_q, mapping_result_q,))
+    process_tracking_torch = mp.Process(target=TrackingTorch, args=(dataset, img_pair_q, tracking_result_q,))
+    process_mapping = mp.Process(target=MTF_Mapping, args=(dataset, tracking_result_q, mapping_result_q,))
     # process_mapping = mp.Process(target=MappingTest, args=(tracking_result_q, mapping_result_q,))
-    process_gaussian_mapping = mp.Process(target=GaussianMappingTest, args=(mapping_result_q,))
+    process_gaussian_mapping = mp.Process(target=GaussianMappingTest, args=(dataset, mapping_result_q,))
 
     process_gaussian_mapping.start()
     process_mapping.start()
