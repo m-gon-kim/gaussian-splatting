@@ -1,0 +1,10 @@
+selected_dataset = REPLICA
+
+dataset_type = TUM
+path = Z:/TeamFolder/GS_SLAM/TUM_RGBD/rgbd_dataset_freiburg3_long_office_household/
+
+dataset_type = REPLICA
+path = Z:/TeamFolder/GS_SLAM/Replica/Replica_Dataset/room_0/room_0/Sequence_1/
+
+dataset_type = SCANNET
+path = Z:/TeamFolder/GS_SLAM/ScanNet/scans/scene0059_00/out/

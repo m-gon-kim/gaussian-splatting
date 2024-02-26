@@ -4,7 +4,7 @@ import numpy as np
 
 class ReplicaDataset:
     def __init__(self):
-        self.path = "Z:/TeamFolder/GS_SLAM/Replica/Replica_Dataset/room_0/room_0/Sequence_1/"
+        self.path = ""
         # self.path = "C:/mg/dataset/Replica/Replica_Dataset/office_0/Sequence_1/"
 
         self.img_pair = []
