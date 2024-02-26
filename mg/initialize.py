@@ -1,4 +1,3 @@
-import math
 from replica_dataset import ReplicaDataset
 from tum_dataset import TumDataset
 from scannet_dataset import ScannetDataset

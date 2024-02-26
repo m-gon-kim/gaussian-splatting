@@ -1,0 +1,10 @@
+# EXAMPLE
+
+DATASET_TYPE = TUM
+PATH = "Z:/TeamFolder/GS_SLAM/TUM_RGBD/rgbd_dataset_freiburg3_long_office_household/"
+
+DATASET_TYPE = REPLICA
+PATH = "Z:/TeamFolder/GS_SLAM/ScanNet/scans/scene0059_00/out/"
+
+DATASET_TYPE = SCANNET
+PATH = "Z:/TeamFolder/GS_SLAM/Replica/Replica_Dataset/room_0/room_0/Sequence_1/"
