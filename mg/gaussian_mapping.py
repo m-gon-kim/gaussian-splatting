@@ -236,31 +236,6 @@ class GaussianMapper:
         self.viz_world_view_transform_list.append(world_view_transform.detach())
         self.viz_camera_center_list.append(camera_center.detach())
 
-    def SetThridPersonViewCamera(self, pose):
-        with torch.no_grad():
-            pose2 = torch.eye(4, dtype=torch.float32, device=self.device)
-            pose2[0, 0] = 1.0
-
-            pose2[1, 1] = 0.0
-            pose2[1, 2] = -1.0
-
-            pose2[2, 1] = 1.0
-            pose2[2, 2] = 0.0
-
-            pose2[0, 3] = 1.0
-            pose2[1, 3] = 2.0
-            pose2[2, 3] = 2.0
-
-            camera_center2 = pose2.T[3, :3].detach()
-            world_view_transform2 = torch.inverse(pose2).T.detach()
-            full_proj_transform2 = torch.matmul(world_view_transform2, self.projection_matrix)
-            # self.viz_full_proj_transform_list.append((world_view_transform2.detach().cpu().unsqueeze(0).bmm(
-            #     (self.projection_matrix).detach().cpu().unsqueeze(0))).squeeze(0).type(torch.FloatTensor).to(
-            #     self.device))
-        self.viz_full_proj_transform_list.append(full_proj_transform2.detach())
-        self.viz_world_view_transform_list.append(world_view_transform2.detach())
-        self.viz_camera_center_list.append(camera_center2.detach())
-
     def SetThirdPersonViewCamera(self, pose):
         with torch.no_grad():
             rel_pose = torch.eye(4, dtype=torch.float32, device=self.device)
@@ -740,10 +715,10 @@ class GaussianMapper:
             viz_full_proj_transform = self.full_proj_transform_list[frame]
             viz_camera_center = self.camera_center_list[frame]
 
-            self.SetThridPersonViewCamera(self.SP_poses[:, :, frame])
-            third_world_view_transform = self.third_world_view_transform_list[frame]
-            third_full_proj_transform = self.third_full_proj_transform_list[frame]
-            third_w_center = self.third_camera_center_list[frame]
+            self.SetThirdPersonViewCamera(self.SP_poses[:, :, frame])
+            third_world_view_transform = self.third_world_view_transform
+            third_full_proj_transform = self.third_full_proj_transform
+            third_w_center = self.third_camera_center
 
             render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform, viz_full_proj_transform,
                                    viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
