@@ -1209,16 +1209,6 @@ class MTFMapper:
         self.pointclouds[:3, t_list[:]] = global_xyz_torch[:3, :].detach()
         print("pointclouds_desc", self.pointclouds_desc.shape, self.pointclouds.shape)
 
-                self.index_2D_3D[idx][i] = pc_index
-                cam_pc_index_list.append(pc_index)
-                u, v = cam_kp[i].pt
-                cam_xyz_list.append(xyz[int(v)][int(u)])
-
-        cam_xyz_torch = torch.from_numpy(np.array(cam_xyz_list)).T.to(self.device)
-        global_xyz_torch = self.ConvertCamXYZ2GlobalXYZ(cam_xyz_torch, init_pose).to(self.device)
-        t_list = torch.from_numpy(np.array(cam_pc_index_list)).to(self.device)
-        self.pointclouds[:3, t_list[:]] = global_xyz_torch[:3, :].detach()
-        print("pointclouds_desc", self.pointclouds_desc.shape, self.pointclouds.shape)
 
     def ViewSimilarity(self, pose1, pose2):
         center1 = torch.matmul(pose1, self.frustum_center).detach()
@@ -1316,7 +1306,6 @@ class MTFMapper:
                 self.GKF_index_list = torch.cat((self.GKF_index_list, torch.tensor([0], dtype=torch.int32, device=self.device)), dim=0)
 
             return [Flag_GMapping, Flag_First_KF, Flag_BA, Flag_densification, Flag_GS_PAUSE], [rgb_img, KF_xyz], \
-
                 torch.eye(4, dtype=torch.float32).cpu()
 
         else:  # Not first KF
@@ -1328,8 +1317,8 @@ class MTFMapper:
 
             # 이전 키프레임을 기준으로 한 point들을 저장한다.
             # 현재 키프레임과 이전 키프레임 사이에서 생성된 point들인데, origin은 이전 것을 기준으로 함.
-            ref_3d_list = tracking_result[3]  # 이전 프레임의, Camera 스페이스 xyz임. / 가우시안에 corner점도 추가할 까 해서 넣은 것
-            ref_color_list = tracking_result[4]  # 위에 꺼랑 매칭 되는 RGB임
+            # ref_3d_list = tracking_result[3]  # 이전 프레임의, Camera 스페이스 xyz임. / 가우시안에 corner점도 추가할 까 해서 넣은 것
+            # ref_color_list = tracking_result[4]  # 위에 꺼랑 매칭 되는 RGB임
 
 
             # 현 키프레임 이미지와, 새로운 pose를 저장 한다.
