@@ -740,95 +740,11 @@ class GaussianMapper:
             viz_world_view_transform = self.world_view_transform_list[frame]
             viz_full_proj_transform = self.full_proj_transform_list[frame]
             viz_camera_center = self.camera_center_list[frame]
-            # transform world space camera center position into camera space
-            w_center_4d = torch.cat((viz_camera_center, torch.tensor([1.0], dtype=torch.float32, device=self.device)))
-            c_center_4d = torch.matmul(torch.inverse(viz_world_view_transform).T, w_center_4d)
-            c_center = c_center_4d[:3] / c_center_4d[3]
 
-            # Third person view (camera)
-            third_person_view_camera_pos = torch.tensor([0.3, 0.0, 0.0], dtype=torch.float32, device=self.device)
-            third_c_center = c_center + third_person_view_camera_pos
-
-            third_c_center_4d = torch.cat((third_c_center, torch.tensor([1.0], dtype=torch.float32, device=self.device)))
-            third_w_center_4d = torch.matmul(viz_world_view_transform.T, third_c_center_4d)
-            third_w_center = third_w_center_4d[:3] / third_w_center_4d[3] # EYE
-
-            # AT: viz_camera_center
-            n = (third_w_center - viz_camera_center) / torch.norm(third_w_center - viz_camera_center)
-            u = torch.tensor([0, 1, 0], dtype=torch.float32, device=self.device)
-            u = u - torch.dot(n, u) * n
-            u = u / torch.norm(u)
-            v = torch.cross(n, u)
-
-            third_world_view_transform = torch.eye(4, dtype=torch.float32, device=self.device)
-            third_world_view_transform[:3, 0] = u
-            third_world_view_transform[:3, 1] = v
-            third_world_view_transform[:3, 2] = n
-            third_world_view_transform[:3, 3] = third_w_center
-            third_world_view_transform = torch.inverse(third_world_view_transform).T
-
-            third_full_proj_transform = torch.matmul(third_world_view_transform, self.projection_matrix)
-
-            render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform, viz_full_proj_transform,
-                                   viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
-            img = render_pkg["render"]
-            # print(img)
-            np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
-            cv2.imshow(f"sw", np_render)
-
-            render_third_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, third_world_view_transform, third_full_proj_transform,
-                                      third_c_center, self.gaussian, self.pipe, self.background, 1.0)
-            img_third = render_third_pkg["render"]
-            # print(img)
-            np_render_third = torch.permute(img_third, (1, 2, 0)).detach().cpu().numpy()
-            cv2.imshow(f"third", np_render_third)
-
-            # # Render camera poses
-            # for i in range(frame):
-            #     proj_camera_center = self.camera_center_list[i]
-
-            # Fixed camera position for visualization
-            for i in range(len(self.viz_world_view_transform_list)):
-                viz_world_view_transform = self.viz_world_view_transform_list[i]
-                viz_full_proj_transform = self.viz_full_proj_transform_list[i]
-                viz_camera_center = self.viz_camera_center_list[i]
-                render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform, viz_full_proj_transform,
-                                       viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
-                img = render_pkg["render"]  #GRB
-                np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()    #RGB
-                cv2.imshow(f"start_gs{i}", np_render)
-
-            # Render from keyframes
-            for i in range(0, self.SP_poses.shape[2], 1):
-                viz_world_view_transform = self.world_view_transform_list[i]
-                viz_full_proj_transform = self.full_proj_transform_list[i]
-                viz_camera_center = self.camera_center_list[i]
-                render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform,
-                                       viz_full_proj_transform,
-                                       viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
-                img = render_pkg["render"]
-                np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
-
-                window_x = (i % 4) * 640
-                if i > 11:
-                    window_x += (640 *4)
-                window_y = int(i / 4) * 480
-                kf_num = self.SP_KF_num_list[i]
-                cv2.imshow(f"rendered{kf_num}", np_render)
-                cv2.moveWindow(f"rendered{kf_num}", window_x, window_y)
-
-            # Render all frames with predicted camera poses
-            frame = self.SP_poses.shape[2]-1
-            viz_world_view_transform = self.world_view_transform_list[frame]
-            viz_full_proj_transform = self.full_proj_transform_list[frame]
-            viz_camera_center = self.camera_center_list[frame]
-
-            self.SetThirdPersonViewCamera(self.SP_poses[:, :, frame])
-            third_world_view_transform = self.third_world_view_transform
-            third_full_proj_transform = self.third_full_proj_transform
-            third_w_center = self.third_camera_center
-
-            projected_camera_centers = self.ProjectThirdPersonViewCameraPositions()
+            self.SetThridPersonViewCamera(self.SP_poses[:, :, frame])
+            third_world_view_transform = self.third_world_view_transform_list[frame]
+            third_full_proj_transform = self.third_full_proj_transform_list[frame]
+            third_w_center = self.third_camera_center_list[frame]
 
             render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform, viz_full_proj_transform,
                                    viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
@@ -841,15 +757,12 @@ class GaussianMapper:
                                       third_w_center, self.gaussian, self.pipe, self.background, 1.0)
             img_third = render_third_pkg["render"]
             # print(img)
-            np_render_third = torch.permute(img_third, (1, 2, 0)).detach().cpu().numpy().copy()
-
-            # Draw wireframe camera positions with opencv
-            for point in projected_camera_centers:
-                # img_center = np.array([self.width // 2, self.height // 2])
-                projected_camera_center = point
-                cv2.circle(np_render_third, tuple(projected_camera_center), 2, (0, 0, 255), -1)
-
+            np_render_third = torch.permute(img_third, (1, 2, 0)).detach().cpu().numpy()
             cv2.imshow(f"third", np_render_third)
+
+            # # Render camera poses
+            # for i in range(frame):
+            #     proj_camera_center = self.camera_center_list[i]
 
             cv2.waitKey(1)
 
