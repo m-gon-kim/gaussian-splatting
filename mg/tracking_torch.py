@@ -7,7 +7,7 @@ from numpy.linalg import inv
 from utility import Rot2Quat, QuaternionInfo
 
 class TrackerTorch:
-    def __init__(self):
+    def __init__(self, dataset):
         self.width = 640
         self.height = 480
         self.device = "cuda"
@@ -26,15 +26,16 @@ class TrackerTorch:
         with torch.no_grad():
             self.inv_intr = torch.zeros((3, 3), dtype=torch.float32, device=self.device)
 
-        self.SetIntrinsics()
+            self.SetIntrinsics(dataset)
         self.GenerateUVTensor()
         # self.KF_pose = None
 
-    def SetIntrinsics(self):
-        fx = 535.4
-        fy = 539.2
-        cx = 320.1
-        cy = 247.6
+    def SetIntrinsics(self, dataset):
+        fx, fy, cx, cy = dataset.get_camera_intrinsic()
+        # fx = 535.4
+        # fy = 539.2
+        # cx = 320.1
+        # cy = 247.6
 
         self.intr[0][0] = fx
         self.intr[0][2] = cx
@@ -111,11 +112,7 @@ class TrackerTorch:
 
     def RecoverXYZFromKeyFrame(self, query_kf):
         with torch.no_grad():
-            scale_factor = 5000.0
-
             d = query_kf.unsqueeze(dim=2)
-            d = d / scale_factor
-
             xyz = torch.mul(self.xy_one.detach(), d)
         return xyz
 
@@ -156,7 +153,7 @@ class TrackerTorch:
                 match_cnt += 1
             else:
                 break
-            if match_cnt == match_cnt_threshold:
+            if match_cnt > match_cnt_threshold:
                 break
 
         query_2d_list = []
@@ -185,6 +182,7 @@ class TrackerTorch:
         rgb = sensor[0]
         gray = sensor[1]
         depth = sensor[2]
+        print("DEPTH", depth, depth.dtype)
         self.Current_gray_gpuMat.upload(gray)
         current_kp, current_des = self.orb.detectAndComputeAsync(self.Current_gray_gpuMat, None)
 
@@ -231,10 +229,19 @@ class TrackerTorch:
                                                           reprojectionError=1, iterationsCount=1000)
             rot, _ = cv2.Rodrigues(rvec)
             quat = Rot2Quat(rot)
-            axis, angle = QuaternionInfo(quat)
+
+            # axis, angle = QuaternionInfo(quat)
             shift = np.linalg.norm(tvec[:3, 0].T)
+
+            val = float(rot[0][0] + rot[1][1] + rot[2][2])
+            if val > 3.0:
+                val = 3.0
+            elif val < -1.0:
+                val = -1.0
+            angle = math.acos((val - 1) * 0.5)
+
             # print(f"angle: {angle}, shift: {shift}")
-            if 0.2 <= angle < 0.3 or 0.1 <= shift < 0.2:  # Mapping is required
+            if 0.1 <= angle or 0.3 <= shift :  # Mapping is required
                 # print(f"Make KF! angle: {angle}, shift: {shift}")
                 self.CreateKeyframe(rgb, depth, (current_kp, current_des))
                 relative_pose = [rot, quat, tvec]

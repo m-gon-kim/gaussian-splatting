@@ -13,7 +13,7 @@ from argparse import ArgumentParser
 from utils.loss_utils import l1_loss, ssim
 import random
 class GaussianMapper:
-    def __init__(self):
+    def __init__(self, dataset):
         self.width = 640
         self.height = 480
         self.device = "cuda"
@@ -25,10 +25,14 @@ class GaussianMapper:
             self.inv_intr = torch.zeros((3, 3), dtype=torch.float32, device=self.device)
             self.recover = None
             self.uv_mid = None
-        self.SetProjectionMatrix()
+            
+        self.SetProjectionMatrix(dataset)
         self.pipe = PipelineParams(ArgumentParser(description="Training script parameters"))
+        self.Flag_GS_Pause = False
 
-        self.SetIntrinsics()
+        self.Flag_GS_Pause = False
+        self.SetIntrinsics(dataset)
+
         self.SetSPMaskPoints()
         self.full_proj_transform_list = []
         self.world_view_transform_list = []
@@ -80,11 +84,12 @@ class GaussianMapper:
 
 
 
-    def SetIntrinsics(self):
-        fx = 535.4
-        fy = 539.2
-        cx = 320.1
-        cy = 247.6
+    def SetIntrinsics(self, dataset):
+        fx, fy, cx, cy = dataset.get_camera_intrinsic()
+        # fx = 535.4
+        # fy = 539.2
+        # cx = 320.1
+        # cy = 247.6
 
         self.intr[0][0] = fx
         self.intr[0][2] = cx
@@ -108,9 +113,8 @@ class GaussianMapper:
             self.recover[2] = 10.0
             self.recover[3] = 1.0
 
-    def SetProjectionMatrix(self):
-        fx = 535.4
-        fy = 539.2
+    def SetProjectionMatrix(self, dataset):
+        fx, fy = dataset.get_camera_intrinsic()[:2]
 
         FoVx = 2 * math.atan(640 / (2 * fx))
         FoVy = 2 * math.atan(480 / (2 * fy))
@@ -438,7 +442,8 @@ class GaussianMapper:
             self.gaussian.max_radii2D[visibility_filter] = torch.max(self.gaussian.max_radii2D[visibility_filter],
                                                                      radii[visibility_filter])
             self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
-            if index%10 == 0 and index > 0 and optimization_i == optimization_i_threshold-1 :
+
+            if index%4 == 0 and index > 0 and optimization_i == optimization_i_threshold-1 :
                 print(f"PRUNE {self.iteration} {self.densification_interval}")
                 self.densification_interval = 0
                 self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
@@ -455,8 +460,6 @@ class GaussianMapper:
         lambda_dssim = 0.2
         sample_kf_index_list = []
 
-        self.iteration+=1
-        print("OPTIMIZE")
         sample_kf_index_list = list(range(self.SP_poses.shape[2]))
 
         # self.gaussian.update_learning_rate(self.iteration)
@@ -483,8 +486,8 @@ class GaussianMapper:
                 self.gaussian.max_radii2D[visibility_filter] = torch.max(self.gaussian.max_radii2D[visibility_filter],
                                                                          radii[visibility_filter])
                 self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
-                if Flag_densification and i%30 == 0 and optimization_i == (optimization_i_threshold-1):
-                    print(f"PRUNE {self.iteration} ")
+
+                if Flag_densification and i%4 == 0 and optimization_i == (optimization_i_threshold-1):
                     self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
                                                     self.size_threshold)
 
@@ -493,15 +496,15 @@ class GaussianMapper:
                 del img
         torch.cuda.empty_cache()
     def OptimizeGaussian(self, Flag_densification):
+        if self.Flag_GS_Pause:
+            return
         if self.SP_poses.shape[2] == 0:
             return
         lambda_dssim = 0.2
         kf_cnt_threshold=3
         kf_cnt_sample=3
-        sample_kf_index_list = []
 
         self.iteration+=1
-        print("OPTIMIZE")
         if self.SP_poses.shape[2] <= kf_cnt_threshold + kf_cnt_sample:
             sample_kf_index_list = list(range(self.SP_poses.shape[2]))
         else:
@@ -552,31 +555,33 @@ class GaussianMapper:
 
 
     def Visualize(self):
+        print("Viz len: ", self.SP_poses.shape[2])
         if self.SP_poses.shape[2] > 0:
-            # # Fixed camera position for visualization
-            # for i in range(len(self.viz_world_view_transform_list)):
-            #     viz_world_view_transform = self.viz_world_view_transform_list[i]
-            #     viz_full_proj_transform = self.viz_full_proj_transform_list[i]
-            #     viz_camera_center = self.viz_camera_center_list[i]
-            #     render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform, viz_full_proj_transform,
-            #                            viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
-            #     img = render_pkg["render"]  #GRB
-            # # print(img)
-            #     np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()    #RGB
-            #     cv2.imshow(f"start_gs{i}", np_render)
-            #
-            # # Render from keyframes
-            # for i in range(0, self.SP_poses.shape[2], 10):
-            #     viz_world_view_transform = self.world_view_transform_list[i]
-            #     viz_full_proj_transform = self.full_proj_transform_list[i]
-            #     viz_camera_center = self.camera_center_list[i]
-            #     render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform,
-            #                            viz_full_proj_transform,
-            #                            viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
-            #     img = render_pkg["render"]
-            #     # print(img)
-            #     np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
-            #     cv2.imshow(f"rendered{i}", np_render)
+
+            # Fixed camera position for visualization
+            for i in range(len(self.viz_world_view_transform_list)):
+                viz_world_view_transform = self.viz_world_view_transform_list[i]
+                viz_full_proj_transform = self.viz_full_proj_transform_list[i]
+                viz_camera_center = self.viz_camera_center_list[i]
+                render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform, viz_full_proj_transform,
+                                       viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
+                img = render_pkg["render"]  #GRB
+            # print(img)
+                np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()    #RGB
+                cv2.imshow(f"start_gs{i}", np_render)
+
+            # Render from keyframes
+            for i in range(0, self.SP_poses.shape[2], 2):
+                viz_world_view_transform = self.world_view_transform_list[i]
+                viz_full_proj_transform = self.full_proj_transform_list[i]
+                viz_camera_center = self.camera_center_list[i]
+                render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform,
+                                       viz_full_proj_transform,
+                                       viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
+                img = render_pkg["render"]
+                # print(img)
+                np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
+                cv2.imshow(f"rendered{i*5}", np_render)
 
             # Render all frames with predicted camera poses
             frame = self.SP_poses.shape[2]-1
@@ -620,6 +625,8 @@ class GaussianMapper:
         mapping_result = mapping_result_instance[1]
         status = mapping_result[0]
 
+        self.Flag_GS_Pause = status[4]
+
         if (not status[0]) and (not status[1]) and (not status[2]):
             return
 
@@ -631,17 +638,14 @@ class GaussianMapper:
                 xyz_t = torch.from_numpy(SP_xyz).to(self.device)
                 pose = mapping_result[2].to(self.device)  # torch.tensor
 
-            if status[0] and status[1] : #First KF
-                # First Keyframe
+            if status[0] and status[1] :  # First KF
                 self.CreateInitialKeyframe(rgb, xyz_t, pose)  # rgb must be numpy (Super pixel)
                 self.getNerfppNorm(pose)
-            elif status[0] and not (status[1]):
-                # ref_3d_list= mapping_result[3]
-                # ref_color_list= mapping_result[4]
+            elif status[0] and not (status[1]):  # Not First Frame
                 self.CreateKeyframe(rgb, xyz_t, pose)
                 self.getNerfppNorm(pose)
-                # print("GMAP3")
-            if status[2]:
+
+            if status[2]: # BA
                 with torch.no_grad():
                     BA_results = mapping_result[3]
                     SP_poses = BA_results.detach().to(self.device)  # torch
@@ -657,10 +661,9 @@ class GaussianMapper:
                         self.full_proj_transform_list[i] = full_proj_transform.detach()
                         self.world_view_transform_list[i] = world_view_transform.detach()
                         self.camera_center_list[i] = camera_center.detach()
-            self.InsertionOptimize()
-            # if status[3]:
-            #     self.FullOptimizeGaussian(True)
-            #     print("DENSIFICATION!")
+
+                self.FullOptimizeGaussian(True)
+
 
         elif status[2]:  # BA
             with torch.no_grad():
@@ -678,6 +681,8 @@ class GaussianMapper:
                     self.full_proj_transform_list[i] = full_proj_transform.detach()
                     self.world_view_transform_list[i] = world_view_transform.detach()
                     self.camera_center_list[i] = camera_center.detach()
+
+            self.FullOptimizeGaussian(True)
 
 
         return
