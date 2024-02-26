@@ -31,7 +31,6 @@ class GaussianMapper:
         self.Flag_GS_Pause = False
 
         self.Flag_GS_Pause = False
-        print("gs", parameters)
         self.SetIntrinsics(dataset)
         self.insertion_densification_interval = parameters["insertion"]["densification_interval"]
         self.full_optimization_densification_interval = parameters["full_optimization"]["densification_interval"]
@@ -684,30 +683,31 @@ class GaussianMapper:
 
     def Visualize(self):
         if self.SP_poses.shape[2] > 0:
-            # # Fixed camera position for visualization
-            # for i in range(len(self.viz_world_view_transform_list)):
-            #     viz_world_view_transform = self.viz_world_view_transform_list[i]
-            #     viz_full_proj_transform = self.viz_full_proj_transform_list[i]
-            #     viz_camera_center = self.viz_camera_center_list[i]
-            #     render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform, viz_full_proj_transform,
-            #                            viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
-            #     img = render_pkg["render"]  #GRB
-            # # print(img)
-            #     np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()    #RGB
-            #     cv2.imshow(f"start_gs{i}", np_render)
-            #
-            # # Render from keyframes
-            # for i in range(0, self.SP_poses.shape[2], 10):
-            #     viz_world_view_transform = self.world_view_transform_list[i]
-            #     viz_full_proj_transform = self.full_proj_transform_list[i]
-            #     viz_camera_center = self.camera_center_list[i]
-            #     render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform,
-            #                            viz_full_proj_transform,
-            #                            viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
-            #     img = render_pkg["render"]
-            #     # print(img)
-            #     np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
-            #     cv2.imshow(f"rendered{i}", np_render)
+
+            # Fixed camera position for visualization
+            for i in range(len(self.viz_world_view_transform_list)):
+                viz_world_view_transform = self.viz_world_view_transform_list[i]
+                viz_full_proj_transform = self.viz_full_proj_transform_list[i]
+                viz_camera_center = self.viz_camera_center_list[i]
+                render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform, viz_full_proj_transform,
+                                       viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
+                img = render_pkg["render"]  #GRB
+            # print(img)
+                np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()    #RGB
+                cv2.imshow(f"start_gs{i}", np_render)
+
+            # Render from keyframes
+            for i in range(0, self.SP_poses.shape[2], 2):
+                viz_world_view_transform = self.world_view_transform_list[i]
+                viz_full_proj_transform = self.full_proj_transform_list[i]
+                viz_camera_center = self.camera_center_list[i]
+                render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform,
+                                       viz_full_proj_transform,
+                                       viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
+                img = render_pkg["render"]
+                # print(img)
+                np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
+                cv2.imshow(f"rendered{i*5}", np_render)
 
             # Render all frames with predicted camera poses
             frame = self.SP_poses.shape[2]-1
