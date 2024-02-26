@@ -241,7 +241,6 @@ class TrackerTorch:
 
             # print(f"angle: {angle}, shift: {shift}")
             if 0.1 <= angle or 0.3 <= shift :  # Mapping is required
-              
                 # print(f"Make KF! angle: {angle}, shift: {shift}")
                 self.CreateKeyframe(rgb, depth, (current_kp, current_des))
                 relative_pose = [rot, quat, tvec]

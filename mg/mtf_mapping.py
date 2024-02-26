@@ -99,7 +99,6 @@ class MTFMapper:
         with torch.no_grad():
             ones = torch.full((1, cam_xyz.shape[1]), 1.0, dtype=torch.float32, device=self.device)
             cam_xyz_homo = torch.cat((cam_xyz, ones), dim=0)
-
             global_xyz = torch.matmul(pose, cam_xyz_homo)
         return global_xyz
     def CreateInitialPointClouds(self, pose, xyz, rgb, orb):
@@ -175,7 +174,6 @@ class MTFMapper:
         projected_uv_zero_mask = projected_uv[:, zero_mask]
         pc_desc = pc_desc[zero_mask, :]
         index_3D = index_3D[zero_mask]
-
         projected_uv_zero_mask = (projected_uv_zero_mask / projected_uv_zero_mask[2, :])[:2, :]  # projection 한 uv
 
         u_min_boundary = projected_uv_zero_mask[0, :] > - boundary_padding
@@ -207,7 +205,6 @@ class MTFMapper:
         cam_desc_np = orb[1]
         matches = self.bf.knnMatch(cam_desc_np, pc_desc_np, 10, None, True)
         matches = sorted(matches, key=lambda x: x[0].distance)
-
         # 4번 과정 완료
 
 
@@ -215,6 +212,7 @@ class MTFMapper:
         cam_kp = self.orb_cuda.convert(orb[0])
         cam_kp_mask = torch.zeros(len(cam_kp), dtype=torch.bool).to(self.device)
         index_2D_3D = torch.full((1, len(cam_kp)), -1, dtype=torch.int32, device=self.device).squeeze()
+
         match_cntr = 0
         cntr = 0
         for match_set in matches:
@@ -243,7 +241,7 @@ class MTFMapper:
 
         cam_xyz_list = []
         cam_rgb_list = []
-
+        
         pc_index = self.pointclouds.shape[1]
 
         print("camp_kp_mask", torch.count_nonzero(cam_kp_mask), cam_kp_mask.shape)
@@ -272,7 +270,6 @@ class MTFMapper:
 
         descriptor_torch = torch.tensor(np.array(descriptor_list)).to(self.device)  # shape(N x 32)
         self.pointclouds_desc = torch.cat((self.pointclouds_desc, descriptor_torch), dim=0)
-
 
         self.index_2D_3D.append(index_2D_3D.detach())
         print("prject usual ends")
@@ -351,7 +348,6 @@ class MTFMapper:
             if not result_covis[0]:
                 break
             if result_covis[1][0]:
-
                 covis_list.append(ref_candidate)
                 if not (current_idx in self.KF_covis_list[ref_candidate]):
                     self.KF_covis_list[ref_candidate].append(current_idx)
@@ -372,7 +368,6 @@ class MTFMapper:
         diff = desc1 / np.linalg.norm(desc1) - desc2 / np.linalg.norm(desc2)
         result = 1 - 0.5 * np.linalg.norm(diff)
         return result
-
 
     def DetectLoopGetOldList(self, current_idx):
         result = False
@@ -412,12 +407,10 @@ class MTFMapper:
         # loop candidate 중 3개 이상 연속인 경우를 탐색
         loop_candidate.sort()
         cntr_serial = 1
-        match2d2d_candidate_list = []
-
+        match2d2d_candidate_list = []        
         match2d2d_candidate_list_score = []
         for i in range(1, len(loop_candidate)):
             if loop_candidate[i][0] - loop_candidate[i - 1][0] == 1:
-
                 cntr_serial += 1
             else:
                 if cntr_serial > 2:
@@ -873,7 +866,6 @@ class MTFMapper:
                 keypoints = keypoints[:, cntr_mask]
 
                 pose_from_kf = torch.cat((poses_param[:, :, kf_idx], torch.eye(4).to(self.device)[3, :].unsqueeze(0)), dim=0)
-
                 world_to_kf = torch.inverse(pose_from_kf)
 
                 cam_xyz = torch.matmul(world_to_kf, pointcloud_seen_from_kf_ctr)[:3, :]
@@ -902,7 +894,7 @@ class MTFMapper:
             optimizer.zero_grad(set_to_none=True)
             if loss_max < 10.0:
                 break
-
+                
         self.pointclouds[:3, :] = pointclouds_param[:3, :].detach()
         self.KF_poses[:3, :, :] = poses_param.detach()[:3, :, :]
         # for i in range(1, len(self.KF_bow_list)):
@@ -1206,6 +1198,16 @@ class MTFMapper:
             if not cam_kp_mask[i]:
                 #xyz를 카메라 포즈 기준으로 옮긴다
                 pc_index = int(self.index_2D_3D[idx][i].detach().cpu())
+                self.index_2D_3D[idx][i] = pc_index
+                cam_pc_index_list.append(pc_index)
+                u, v = cam_kp[i].pt
+                cam_xyz_list.append(xyz[int(v)][int(u)])
+
+        cam_xyz_torch = torch.from_numpy(np.array(cam_xyz_list)).T.to(self.device)
+        global_xyz_torch = self.ConvertCamXYZ2GlobalXYZ(cam_xyz_torch, init_pose).to(self.device)
+        t_list = torch.from_numpy(np.array(cam_pc_index_list)).to(self.device)
+        self.pointclouds[:3, t_list[:]] = global_xyz_torch[:3, :].detach()
+        print("pointclouds_desc", self.pointclouds_desc.shape, self.pointclouds.shape)
 
                 self.index_2D_3D[idx][i] = pc_index
                 cam_pc_index_list.append(pc_index)
@@ -1230,7 +1232,6 @@ class MTFMapper:
     def FullBACall(self):
         if len(self.KF_bow_list) <10:
             return  [False, False, False, False], [], [], []
-
         self.FullBA(10, point_rate=5, pose_rate=4)
         GKF_poses = torch.index_select(self.KF_poses, 2, self.GKF_index_list)
         return [False, False, True, False], [], [], GKF_poses.detach().cpu()
@@ -1267,12 +1268,12 @@ class MTFMapper:
                 GKF_poses = torch.index_select(self.KF_poses, 2, self.GKF_index_list)
                 return [Flag_GMapping, Flag_First_KF, Flag_BA, Flag_densification, Flag_GS_PAUSE], \
                     [], [], GKF_poses.detach().cpu()
-
     def Map(self, tracking_result_instance):
         Flag_GMapping = False
         Flag_First_KF = False
         Flag_BA = False
         Flag_densification = False
+        Flag_GS_PAUSE = False
 
         Flag_GS_PAUSE = False
 
@@ -1325,7 +1326,6 @@ class MTFMapper:
             Flag_densification = False
             Flag_GS_PAUSE = False
 
-
             # 이전 키프레임을 기준으로 한 point들을 저장한다.
             # 현재 키프레임과 이전 키프레임 사이에서 생성된 point들인데, origin은 이전 것을 기준으로 함.
             ref_3d_list = tracking_result[3]  # 이전 프레임의, Camera 스페이스 xyz임. / 가우시안에 corner점도 추가할 까 해서 넣은 것
@@ -1342,7 +1342,6 @@ class MTFMapper:
                 KF_relative_pose = torch.eye(4, dtype=torch.float32, device=self.device)
                 KF_relative_pose[:3, :3] = torch.from_numpy(rot).to(self.device).detach()
                 KF_relative_pose[:3, 3] = torch.from_numpy(tvec).to(self.device).squeeze().detach()
-
 
                 Current_pose = torch.matmul(self.KF_poses[:, :, -1].detach(), torch.inverse(KF_relative_pose))
                 self.CreateKeyframe(rgb_img, KF_xyz, (current_kp, current_des), Current_pose)

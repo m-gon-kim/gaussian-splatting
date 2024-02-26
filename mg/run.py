@@ -52,6 +52,7 @@ def TrackingTorch(dataset, img_pair_q, tracking_result_q):
 
 def MTF_Mapping(dataset, tracking_result_q, mapping_result_q):
     mapper = MTFMapper(dataset)
+
     while True:
         if not tracking_result_q.empty():
             q_size= tracking_result_q.qsize()
@@ -72,6 +73,7 @@ def MTF_Mapping(dataset, tracking_result_q, mapping_result_q):
 
 def GaussianMappingTest(dataset, mapping_result_q):
     gaussian_mapper = GaussianMapper(dataset)
+
     opt_iter = 0
     viz_iter = 0
     while True:

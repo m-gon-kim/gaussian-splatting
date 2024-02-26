@@ -28,6 +28,7 @@ class GaussianMapper:
             
         self.SetProjectionMatrix(dataset)
         self.pipe = PipelineParams(ArgumentParser(description="Training script parameters"))
+        self.Flag_GS_Pause = False
 
         self.Flag_GS_Pause = False
         self.SetIntrinsics(dataset)
@@ -424,9 +425,6 @@ class GaussianMapper:
         lambda_dssim = 0.2
         sample_kf_index_list = []
 
-        self.iteration+=1
-        print("OPTIMIZE")
-        
         sample_kf_index_list = list(range(self.SP_poses.shape[2]))
 
         # self.gaussian.update_learning_rate(self.iteration)
@@ -601,6 +599,7 @@ class GaussianMapper:
             # for i in range(frame):
             #     proj_camera_center = self.camera_center_list[i]
 
+
             cv2.waitKey(1)
 
     def GaussianMap(self, mapping_result_instance):
@@ -608,7 +607,6 @@ class GaussianMapper:
             return
         mapping_result = mapping_result_instance[1]
         status = mapping_result[0]
-
 
         self.Flag_GS_Pause = status[4]
 
@@ -622,7 +620,6 @@ class GaussianMapper:
             with torch.no_grad():
                 xyz_t = torch.from_numpy(SP_xyz).to(self.device)
                 pose = mapping_result[2].to(self.device)  # torch.tensor
-
 
             if status[0] and status[1] :  # First KF
                 self.CreateInitialKeyframe(rgb, xyz_t, pose)  # rgb must be numpy (Super pixel)
