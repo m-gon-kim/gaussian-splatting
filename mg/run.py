@@ -103,14 +103,13 @@ def GaussianMappingTest(dataset, mapping_result_q):
 
 
 if __name__ == '__main__':
-    img_pair_q = mp.Queue   ()
+    img_pair_q = mp.Queue()
     tracking_result_q = mp.Queue()
     mapping_result_q = mp.Queue()
 
     # EXAMPLE: TUM, REPLICA, SCANNET
     dataset_type = "TUM"
     dataset = GetDataset(dataset_type)
-    # print(dataset.get_data_len())
 
     process_play_data = mp.Process(target=PlayDataset, args=(dataset, img_pair_q,))
     # process_tracking = mp.Process(target=TrackingTest, args=(img_pair_q, tracking_result_q,))

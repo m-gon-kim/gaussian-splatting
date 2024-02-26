@@ -1,5 +1,6 @@
 import cv2
 import os
+import numpy as np
 
 class ScannetDataset:
     def __init__(self):
@@ -14,7 +15,6 @@ class ScannetDataset:
         self.rgb_height = []
         self.d_width = []
         self.d_height = []
-        self.d_shift = []
         self.rgb_intrinsic = []
         self.d_intrinsic = []
 
@@ -28,7 +28,6 @@ class ScannetDataset:
             "m_colorHeight": self.rgb_height,
             "m_depthWidth": self.d_width,
             "m_depthHeight": self.d_height,
-            "m_depthShift": self.d_shift,
             "m_calibrationColorIntrinsic": self.rgb_intrinsic,
             "m_calibrationDepthIntrinsic": self.d_intrinsic
         }
@@ -91,8 +90,9 @@ class ScannetDataset:
             gray = cv2.cvtColor(rgb_resized, cv2.COLOR_RGB2GRAY)
             cv2.imwrite(f'{self.path}pair/gray/{str(cntr + 1).zfill(5)}.png', gray)
 
-            d = cv2.imread(depth_list[cntr], cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH) / self.d_shift[0]
-            cv2.imwrite(f'{self.path}pair/depth/{str(cntr + 1).zfill(5)}.png', d)
+            d_16bit = cv2.imread(depth_list[cntr], cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH) / 1000.0
+            d_32bit = d_16bit.astype(np.float32)
+            cv2.imwrite(f'{self.path}pair/depth/{str(cntr + 1).zfill(5)}.tiff', d_32bit)
 
             # self.img_pair.append((rgb, d))
             # self.rgb_list.append(rgb)
@@ -101,9 +101,10 @@ class ScannetDataset:
 
     def ReturnData(self, index):
         file_name = f'{str(index).zfill(5)}.png'
+        d_file_name = f'{str(index).zfill(5)}.tiff'
         rgb = cv2.imread(f'{self.path}pair/rgb/{file_name}')
         # rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
         gray = cv2.imread(f'{self.path}pair/gray/{file_name}', cv2.IMREAD_GRAYSCALE)
-        d = cv2.imread(f'{self.path}pair/depth/{file_name}', cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH)
+        d = cv2.imread(f'{self.path}pair/depth/{d_file_name}', cv2.IMREAD_UNCHANGED)
 
         return rgb, gray, d

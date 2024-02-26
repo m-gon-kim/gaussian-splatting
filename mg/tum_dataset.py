@@ -65,8 +65,9 @@ class TumDataset:
             rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
             gray = cv2.imread(f'{self.path}{a[0]}', cv2.IMREAD_GRAYSCALE)
             cv2.imwrite(f'{self.path}pair/gray/{str(cntr).zfill(5)}.png', gray)
-            d = cv2.imread(f'{self.path}{a[1]}', cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH) / 5000.0
-            cv2.imwrite(f'{self.path}pair/depth/{str(cntr).zfill(5)}.png', d)
+            d_16bit = cv2.imread(f'{self.path}{a[1]}', cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH) / 5000.0
+            d_32bit = d_16bit.astype(np.float32)
+            cv2.imwrite(f'{self.path}pair/depth/{str(cntr).zfill(5)}.png', d_32bit)
 
             # self.img_pair.append((rgb, d))
             # self.rgb_list.append(rgb)
@@ -97,9 +98,9 @@ class TumDataset:
 
     def ReturnData(self, index):
         file_name = f'{str(index).zfill(5)}.png'
+        d_file_name = f'{str(index).zfill(5)}.tiff'
         rgb = cv2.imread(f'{self.path}pair/rgb/{file_name}')
         # rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
         gray = cv2.imread(f'{self.path}pair/gray/{file_name}', cv2.IMREAD_GRAYSCALE)
-        d = cv2.imread(f'{self.path}pair/depth/{file_name}', cv2.IMREAD_UNCHANGED).astype(np.float32)
-        print("Return ", d, d.dtype)
+        d = cv2.imread(f'{self.path}pair/depth/{d_file_name}', cv2.IMREAD_UNCHANGED)
         return rgb, gray, d
