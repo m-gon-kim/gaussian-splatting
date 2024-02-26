@@ -94,12 +94,11 @@ class TumDataset:
 
         return [fx, fy, cx, cy]
 
-
     def ReturnData(self, index):
         file_name = f'{str(index).zfill(5)}.png'
+        d_file_name = f'{str(index).zfill(5)}.tiff'
         rgb = cv2.imread(f'{self.path}pair/rgb/{file_name}')
         # rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
         gray = cv2.imread(f'{self.path}pair/gray/{file_name}', cv2.IMREAD_GRAYSCALE)
-        d = cv2.imread(f'{self.path}pair/depth/{file_name}', cv2.IMREAD_UNCHANGED).astype(np.float32)
-        print("Return ", d, d.dtype)
+        d = cv2.imread(f'{self.path}pair/depth/{d_file_name}', cv2.IMREAD_UNCHANGED)
         return rgb, gray, d
