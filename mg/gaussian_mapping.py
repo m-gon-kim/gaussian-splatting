@@ -223,22 +223,10 @@ class GaussianMapper:
         self.viz_world_view_transform_list.append(world_view_transform2.detach())
         self.viz_camera_center_list.append(camera_center2.detach())
 
-        with torch.no_grad():
-            pose = torch.eye(4, dtype=torch.float32, device=self.device)
-            pose[2, 3] = -5
-            pose[1, 3] = -0.5
-            camera_center = pose.T[3, :3].detach()
-            world_view_transform = torch.inverse(pose).T.detach()
-        self.viz_full_proj_transform_list.append((world_view_transform.detach().cpu().unsqueeze(0).bmm(
-            (self.projection_matrix).detach().cpu().unsqueeze(0))).squeeze(0).type(torch.FloatTensor).to(
-            self.device))
-        self.viz_world_view_transform_list.append(world_view_transform.detach())
-        self.viz_camera_center_list.append(camera_center.detach())
-
     def SetThirdPersonViewCamera(self, pose):
         with torch.no_grad():
             rel_pose = torch.eye(4, dtype=torch.float32, device=self.device)
-            tvec = torch.tensor([0, 0, -1], dtype=torch.float32, device=self.device)
+            tvec = torch.tensor([0, 0, -3], dtype=torch.float32, device=self.device)
             rot = torch.tensor([[1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=torch.float32, device=self.device)
             rel_pose[:3, :3] = rot
             rel_pose[:3, 3] = tvec
@@ -264,75 +252,6 @@ class GaussianMapper:
                 cam_uv = cam_uv / cam_uv[2]
                 projected_camera_centers.append(cam_uv[:2])
         return projected_camera_centers
-
-    def CreateCameraWireframePoints(self):
-        with torch.no_grad():
-            pose = self.SP_poses[:, :, -1]
-
-            c_depth = 0.0001
-            c_width = self.width * c_depth
-            c_height = self.height * c_depth
-
-            rel_pose = torch.eye(4, dtype=torch.float32, device=self.device)
-            tvec1 = torch.tensor([c_width, c_height, c_depth*400], dtype=torch.float32, device=self.device)
-            tvec2 = torch.tensor([-c_width, c_height, c_depth*400], dtype=torch.float32, device=self.device)
-            tvec3 = torch.tensor([-c_width, -c_height, c_depth*400], dtype=torch.float32, device=self.device)
-            tvec4 = torch.tensor([c_width, -c_height, c_depth*400], dtype=torch.float32, device=self.device)
-
-            rel_pose1 = torch.eye(4, dtype=torch.float32, device=self.device)
-            rel_pose2 = torch.eye(4, dtype=torch.float32, device=self.device)
-            rel_pose3 = torch.eye(4, dtype=torch.float32, device=self.device)
-            rel_pose4 = torch.eye(4, dtype=torch.float32, device=self.device)
-            rel_pose1[:3, 3] = tvec1
-            rel_pose2[:3, 3] = tvec2
-            rel_pose3[:3, 3] = tvec3
-            rel_pose4[:3, 3] = tvec4
-
-            rel_pose1 = torch.matmul(pose, rel_pose1)
-            rel_pose2 = torch.matmul(pose, rel_pose2)
-            rel_pose3 = torch.matmul(pose, rel_pose3)
-            rel_pose4 = torch.matmul(pose, rel_pose4)
-
-            pose1 = rel_pose1.T[3, :3].detach()
-            pose2 = rel_pose2.T[3, :3].detach()
-            pose3 = rel_pose3.T[3, :3].detach()
-            pose4 = rel_pose4.T[3, :3].detach()
-
-            poses = [pose.T[3, :3].detach(), pose1, pose2, pose3, pose4]
-
-            self.wireframe_camera_positions.append(poses)
-
-    def DrawCameraWireframes(self, img):
-        with torch.no_grad():
-            for i in range(len(self.wireframe_camera_positions)):
-                poses = self.wireframe_camera_positions[i]
-                points = []
-                for p in poses:
-                    pose_4d = torch.cat((p, torch.tensor([1], dtype=torch.float32, device=self.device)))
-
-                    view_space_pos = torch.matmul(torch.inverse(self.third_world_view_transform), pose_4d)
-                    ndc_space_pos = view_space_pos / view_space_pos[3]
-                    cam_uv = torch.matmul(self.intr, ndc_space_pos[:3])
-                    cam_uv = cam_uv / cam_uv[2]
-                    points.append(cam_uv[:2])
-
-                for j in range(len(self.wireframe_camera_index)):
-                    point1 = points[self.wireframe_camera_index[j][0]]
-                    point2 = points[self.wireframe_camera_index[j][1]]
-                    cv2.line(img, (int(point1[0]), int(point1[1])), (int(point2[0]), int(point2[1])), (0, 255, 0), 1)
-
-                if i > 0:
-                    l_p1 = points[0]
-                    w_l_p2 = self.wireframe_camera_positions[i-1][0]
-                    w_l_p2_4d = torch.cat((w_l_p2, torch.tensor([1], dtype=torch.float32, device=self.device)))
-                    view_space_l_p2 = torch.matmul(torch.inverse(self.third_world_view_transform), w_l_p2_4d)
-                    ndc_space_l_p2 = view_space_l_p2 / view_space_l_p2[3]
-                    l_p2 = torch.matmul(self.intr, ndc_space_l_p2[:3])
-                    l_p2 = l_p2 / l_p2[2]
-                    l_p2 = l_p2[:2]
-                    cv2.line(img, (int(l_p1[0]), int(l_p1[1])), (int(l_p2[0]), int(l_p2[1])), (0, 0, 255), 1)
-
-        return img
 
     def CreateCameraWireframePoints(self):
         with torch.no_grad():
