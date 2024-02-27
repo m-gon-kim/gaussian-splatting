@@ -23,6 +23,8 @@ class GaussianMapper:
             self.FoVy = None
             self.intr = torch.zeros((3, 3), dtype=torch.float32, device=self.device)
             self.inv_intr = torch.zeros((3, 3), dtype=torch.float32, device=self.device)
+            self.intr_wide = torch.zeros((3, 3), dtype=torch.float32, device=self.device)
+            self.inv_intr_wide = torch.zeros((3, 3), dtype=torch.float32, device=self.device)
             self.recover = None
             self.uv_mid = None
 
@@ -104,6 +106,18 @@ class GaussianMapper:
         self.inv_intr[1][1] = 1 / fy
         self.inv_intr[1][2] = -cy / fy
         self.inv_intr[2][2] = 1
+
+        self.intr_wide[0][0] = fx / 2
+        self.intr_wide[0][2] = cx
+        self.intr_wide[1][1] = fy / 2
+        self.intr_wide[1][2] = cy
+        self.intr_wide[2][2] = 1
+
+        self.inv_intr_wide[0][0] = 1 / (fx / 2)
+        self.inv_intr_wide[0][2] = -cx / (fx / 2)
+        self.inv_intr_wide[1][1] = 1 / (fy / 2)
+        self.inv_intr_wide[1][2] = -cy / (fy / 2)
+        self.inv_intr_wide[2][2] = 1
 
     def SetSPMaskPoints(self):
         with torch.no_grad():
@@ -233,17 +247,21 @@ class GaussianMapper:
 
         with torch.no_grad():
             pose2 = torch.eye(4, dtype=torch.float32, device=self.device)
-            pose2[0, 0] = 1.0
+            x_rot_degree = -90
+            y_rot_degree = 0
+            z_rot_degree = -20
+            x_rot = x_rot_degree * (math.pi / 180)
+            y_rot = y_rot_degree * (math.pi / 180)
+            z_rot = z_rot_degree * (math.pi / 180)
 
-            pose2[1, 1] = 0.0
-            pose2[1, 2] = -1.0
+            x_rot_mat = torch.tensor([[1, 0, 0], [0, math.cos(x_rot), -math.sin(x_rot)], [0, math.sin(x_rot), math.cos(x_rot)]], dtype=torch.float32, device=self.device)
+            y_rot_mat = torch.tensor([[math.cos(y_rot), 0, math.sin(y_rot)], [0, 1, 0], [-math.sin(y_rot), 0, math.cos(y_rot)]], dtype=torch.float32, device=self.device)
+            z_rot_mat = torch.tensor([[math.cos(z_rot), -math.sin(z_rot), 0], [math.sin(z_rot), math.cos(z_rot), 0], [0, 0, 1]], dtype=torch.float32, device=self.device)
+            rot = torch.matmul(torch.matmul(x_rot_mat, y_rot_mat), z_rot_mat)
+            pose2[:3, :3] = rot
 
-            pose2[2, 1] = 1.0
-            pose2[2, 2] = 0.0
-
-            pose2[0, 3] = 1.0
-            pose2[1, 3] = 2.0
-            pose2[2, 3] = 2.0
+            trans = torch.tensor([0.0, -1.5, 2.5], dtype=torch.float32, device=self.device)
+            pose2[:3, 3] = trans
 
             camera_center2 = pose2.T[3, :3].detach()
             world_view_transform2 = torch.inverse(pose2).T.detach()
@@ -258,7 +276,7 @@ class GaussianMapper:
     def SetThirdPersonViewCamera(self, pose):
         with torch.no_grad():
             rel_pose = torch.eye(4, dtype=torch.float32, device=self.device)
-            tvec = torch.tensor([0, 0, -3], dtype=torch.float32, device=self.device)
+            tvec = torch.tensor([0, 0, -1], dtype=torch.float32, device=self.device)
             rot = torch.tensor([[1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=torch.float32, device=self.device)
             rel_pose[:3, :3] = rot
             rel_pose[:3, 3] = tvec
@@ -332,7 +350,7 @@ class GaussianMapper:
 
                     view_space_pos = torch.matmul(torch.inverse(self.third_world_view_transform), pose_4d)
                     ndc_space_pos = view_space_pos / view_space_pos[3]
-                    cam_uv = torch.matmul(self.intr, ndc_space_pos[:3])
+                    cam_uv = torch.matmul(self.intr_wide, ndc_space_pos[:3])
                     cam_uv = cam_uv / cam_uv[2]
                     points.append(cam_uv[:2])
 
@@ -347,7 +365,7 @@ class GaussianMapper:
                     w_l_p2_4d = torch.cat((w_l_p2, torch.tensor([1], dtype=torch.float32, device=self.device)))
                     view_space_l_p2 = torch.matmul(torch.inverse(self.third_world_view_transform), w_l_p2_4d)
                     ndc_space_l_p2 = view_space_l_p2 / view_space_l_p2[3]
-                    l_p2 = torch.matmul(self.intr, ndc_space_l_p2[:3])
+                    l_p2 = torch.matmul(self.intr_wide, ndc_space_l_p2[:3])
                     l_p2 = l_p2 / l_p2[2]
                     l_p2 = l_p2[:2]
                     cv2.line(img, (int(l_p1[0]), int(l_p1[1])), (int(l_p2[0]), int(l_p2[1])), (0, 0, 255), 1)
