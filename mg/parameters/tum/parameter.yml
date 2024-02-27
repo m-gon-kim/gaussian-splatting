@@ -1,0 +1,43 @@
+dataset: 'tum'
+tracking:
+  orb_nfeatures: 1000
+  depth_crop:
+    near: 0.01
+    far: 5.0
+  kf_selection:
+    angle: 0.1
+    shift: 0.3
+
+mapping:
+  orb_nfeatures: 1000
+  xyz_crop:
+    project_map_to_frame:
+      near: 0.01
+      far: 5.0
+      padding: 200
+      distance: 50
+      diff: 200
+    project_map_to_frame_loop:
+      near: 0.01
+      far: 5.0
+      padding: 50
+      distance: 50
+  superpixel_kf_selection:
+    angle: 0.5
+    shift: 0.5
+  loop_closing_pose_threshold:
+    angle: 0.2
+    shift: 0.1
+  superpixel_creation:
+    region_size: 16
+    ruler: 100
+  loop_ba:
+    iteration: 100
+    point_lr: 0.01
+    pose_lr: 0.01
+
+gaussian:
+  insertion:
+    densification_interval: 2
+  full_optimization:
+    densification_interval: 4

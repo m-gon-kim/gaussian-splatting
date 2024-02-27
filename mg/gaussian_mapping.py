@@ -13,7 +13,7 @@ from argparse import ArgumentParser
 from utils.loss_utils import l1_loss, ssim
 import random
 class GaussianMapper:
-    def __init__(self, dataset):
+    def __init__(self, dataset, parameters):
         self.width = 640
         self.height = 480
         self.device = "cuda"
@@ -31,6 +31,7 @@ class GaussianMapper:
         self.Flag_GS_Pause = False
 
         self.Flag_GS_Pause = False
+        print("gs", parameters)
         self.SetIntrinsics(dataset)
 
         self.SetSPMaskPoints()

@@ -1,6 +1,7 @@
 from replica_dataset import ReplicaDataset
 from tum_dataset import TumDataset
 from scannet_dataset import ScannetDataset
+import yaml
 
 class Dataset:
     def __init__(self):
@@ -16,6 +17,8 @@ class Dataset:
             "REPLICA": ReplicaDataset(),
             "SCANNET": ScannetDataset()
         }
+        self.parameters = {}
+        self.ReadParameters()
 
     def ReadSetting(self):
         with open(self.setting) as setting_file:
@@ -39,6 +42,12 @@ class Dataset:
         if isinstance(dataset, ScannetDataset):
             dataset.initialize_info()
         return dataset
+
+    def ReadParameters(self):
+        path = "parameters/" + self.selected_dataset + "/parameter.yml"
+        with open(path, 'r') as file:
+            self.parameters = yaml.safe_load(file)
+        print(self.parameters)
 
 
     def InitializeDataset(self):
