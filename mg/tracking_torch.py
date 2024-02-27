@@ -32,6 +32,8 @@ class TrackerTorch:
         self.kf_selection_angle = parameters["kf_selection"]["angle"]
         self.kf_selection_shift = parameters["kf_selection"]["shift"]
         self.SetORBSettings()
+        self.frame_cnt = 0
+        self.prev_kf = 0
 
     def SetIntrinsics(self, dataset):
         fx, fy, cx, cy = dataset.get_camera_intrinsic()
@@ -189,6 +191,7 @@ class TrackerTorch:
         self.Current_gray_gpuMat.upload(gray)
         current_kp, current_des = self.orb.detectAndComputeAsync(self.Current_gray_gpuMat, None)
 
+        self.frame_cnt +=1
 
 
         # cv2.imshow("Tracking input", rgb)
@@ -240,6 +243,8 @@ class TrackerTorch:
 
             if self.kf_selection_angle <= angle or self.kf_selection_shift <= shift:  # Mapping is required
                 # print(f"Make KF! angle: {angle}, shift: {shift}")
+                print(f"Make KF! {self.prev_kf} -> {self.frame_cnt - 1} | {len(ref_3d_list)}")
+                self.prev_kf = (self.frame_cnt - 1)
                 self.CreateKeyframe(rgb, depth, (current_kp, current_des))
                 relative_pose = [rot, quat, tvec]
 
