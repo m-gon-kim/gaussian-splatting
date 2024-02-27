@@ -78,7 +78,7 @@ class TrackerTorch:
 
     def SetORBSettings(self):
         self.orb=cv2.cuda_ORB.create(
-            nfeatures=40000,
+            nfeatures=1000,
             scaleFactor=1.2,
             nlevels=8,
             edgeThreshold=31,
@@ -205,24 +205,19 @@ class TrackerTorch:
             query_2d_list, ref_3d_list, ref_color_list = self.Match2D2D((current_kp, current_des))
 
             # Crop near points (for mapping)
-            z_mask_0 = ref_3d_list[:, 2] > 0.2
-            ref_3d_list = ref_3d_list[z_mask_0]
-            ref_color_list = ref_color_list[z_mask_0]
-            query_2d_list = query_2d_list[z_mask_0]
 
             pnp_ref_3d_list = np.copy(ref_3d_list)
             pnp_query_2d_list = np.copy(query_2d_list)
 
             # Crop near points (for PNP Solver)
-            z_mask_1 = pnp_ref_3d_list[:, 2] > 0.5
+            z_mask_1 = pnp_ref_3d_list[:, 2] > 0.01
             pnp_ref_3d_list = pnp_ref_3d_list[z_mask_1]
             pnp_query_2d_list = pnp_query_2d_list[z_mask_1]
             # Crop far points (for PNP Solver)
-            z_mask_2 = pnp_ref_3d_list[:, 2] <= 3
+            z_mask_2 = pnp_ref_3d_list[:, 2] <= 5.0
             pnp_ref_3d_list = pnp_ref_3d_list[z_mask_2]
             pnp_query_2d_list = pnp_query_2d_list[z_mask_2]
 
-            # print("Track PNP", pnp_query_2d_list.shape, pnp_ref_3d_list.shape )
             # PNP Solver
             ret, rvec, tvec, inliers = cv2.solvePnPRansac(pnp_ref_3d_list, pnp_query_2d_list, self.intr,
                                                           distCoeffs=None, flags=cv2.SOLVEPNP_EPNP, confidence=0.9999,
@@ -241,7 +236,7 @@ class TrackerTorch:
             angle = math.acos((val - 1) * 0.5)
 
             # print(f"angle: {angle}, shift: {shift}")
-            if 0.1 <= angle or 0.3 <= shift :  # Mapping is required
+            if 0.3 <= angle or 0.3 <= shift :  # Mapping is required
                 # print(f"Make KF! angle: {angle}, shift: {shift}")
                 self.CreateKeyframe(rgb, depth, (current_kp, current_des))
                 relative_pose = [rot, quat, tvec]
