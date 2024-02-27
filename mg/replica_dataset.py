@@ -7,10 +7,10 @@ class ReplicaDataset:
         self.path = ""
         # self.path = "C:/mg/dataset/Replica/Replica_Dataset/office_0/Sequence_1/"
 
-        self.img_pair = []
-        self.rgb_list = []
-        self.gray_list = []
-        self.d_list = []
+        # self.img_pair = []
+        # self.rgb_list = []
+        # self.gray_list = []
+        # self.d_list = []
 
     def get_rgb_list(self):
         rgb_folder = f'{self.path}rgb/'

@@ -6,10 +6,10 @@ class ScannetDataset:
     def __init__(self):
         self.path = ""
 
-        self.img_pair = []
-        self.rgb_list = []
-        self.gray_list = []
-        self.d_list = []
+        # self.img_pair = []
+        # self.rgb_list = []
+        # self.gray_list = []
+        # self.d_list = []
 
         self.rgb_width = []
         self.rgb_height = []
@@ -18,40 +18,33 @@ class ScannetDataset:
         self.rgb_intrinsic = []
         self.d_intrinsic = []
 
+        self.info_read = False
+
     def read_info_file(self, filename):
-        file = open(filename)
-        lines = file.readlines()
-        keys_dict = {
-            "m_colorWidth": self.rgb_width,
-            "m_colorHeight": self.rgb_height,
-            "m_depthWidth": self.d_width,
-            "m_depthHeight": self.d_height,
-            "m_calibrationColorIntrinsic": self.rgb_intrinsic,
-            "m_calibrationDepthIntrinsic": self.d_intrinsic
-        }
+        with open(filename) as file:
+            keys_dict = {
+                "m_colorWidth": self.rgb_width,
+                "m_colorHeight": self.rgb_height,
+                "m_depthWidth": self.d_width,
+                "m_depthHeight": self.d_height,
+                "m_calibrationColorIntrinsic": self.rgb_intrinsic,
+                "m_calibrationDepthIntrinsic": self.d_intrinsic
+            }
 
-        for line in lines:
-            key, value = line.strip().split(' = ')
-            if key in keys_dict:
-                if '.' in value:
-                    value_list = map(float, value.split())
-                else:
-                    value_list = map(int, value.split())
-                keys_dict[key] += value_list
+            for line in file:
+                if "=" in line:
+                    key, value = line.strip().split(' = ')
+                    if key in keys_dict:
+                        values = map(float if '.' in value else int, value.split())
+                        keys_dict[key].extend(values)
 
-    def get_rgb_list(self):
-        rgb_files = []
-        for filename in os.listdir(self.path):
-            if filename.endswith(".color.jpg"):
-                rgb_files += [self.path + filename]
-        return rgb_files
+    def initialize_info(self):
+        if not self.info_read:
+            self.read_info_file(f'{self.path}_info.txt')
+            self.info_read = True
 
-    def get_depth_list(self):
-        depth_files = []
-        for filename in os.listdir(self.path):
-            if filename.endswith(".depth.pgm"):
-                depth_files += [self.path + filename]
-        return depth_files
+    def get_file_list(self, extension):
+        return [os.path.join(self.path, filename) for filename in os.listdir(self.path) if filename.endswith(extension)]
 
     def get_camera_intrinsic(self):
         # depth camera intrinsic
@@ -62,16 +55,15 @@ class ScannetDataset:
         return [fx, fy, cx, cy]
 
     def get_data_len(self):
-        rgb_list = self.get_rgb_list()
-        depth_list = self.get_depth_list()
+        rgb_list = self.get_file_list(".color.jpg")
+        depth_list = self.get_file_list(".depth.pgm")
         assert len(rgb_list) == len(depth_list), "Number of files in depth and RGB folders must be the same"
-        data_len = len(rgb_list)
-        return data_len
+        return len(rgb_list)
 
     def InitializeDataset(self):
         self.read_info_file(f'{self.path}_info.txt')
-        rgb_list = self.get_rgb_list()
-        depth_list = self.get_depth_list()
+        rgb_list = self.get_file_list(".color.jpg")
+        depth_list = self.get_file_list(".depth.pgm")
         assert len(rgb_list) == len(depth_list), "Number of files in depth and RGB folders must be the same"
 
         frames = len(rgb_list)
