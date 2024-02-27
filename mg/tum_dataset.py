@@ -5,10 +5,10 @@ import cv2
 class TumDataset:
     def __init__(self):
         self.path = ""
-        self.img_pair = []
-        self.rgb_list = []
-        self.gray_list = []
-        self.d_list = []
+        # self.img_pair = []
+        # self.rgb_list = []
+        # self.gray_list = []
+        # self.d_list = []
 
     def read_file_list(self, filename):
         file = open(filename)
