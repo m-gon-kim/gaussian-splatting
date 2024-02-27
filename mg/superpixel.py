@@ -14,7 +14,7 @@ class SuperPixelManager:
         self.width = width
         self.height = height
         self.iteration_N = 1
-        self.region_size = 32
+        self.region_size = 16
         self.ruler = 100
         self.device = "cuda"
         with torch.no_grad():

@@ -289,21 +289,9 @@ class GaussianMapper:
             del masked_index
             del masked_xyz
 
-
-        # self.SP_ref_3d_list.append(sp_3d_list)
-        # self.SP_ref_color_list.append(sp_color_list)
-
-        # pre-compute poses
             world_view_transform = torch.inverse(pose).T.detach()
             camera_center = torch.inverse(world_view_transform)[3, :3]
-        # print(f"bmm: {world_view_transform.unsqueeze(0).shape}, {self.projection_matrix.detach().cpu().unsqueeze(0).shape}")
-        # full_proj_transform = world_view_transform.unsqueeze(0).cpu().bmm((self.projection_matrix).detach().cpu().unsqueeze(0))
-        # print(f"full_proj_transform {full_proj_transform.shape}")
-        # full_proj_transform = full_proj_transform.squeeze(0).to(self.device)
-        # print(f"full_proj_transform squ {full_proj_transform.shape}")
             full_proj_transform = torch.matmul(world_view_transform, self.projection_matrix)
-        # world_view_transform = world_view_transform.type(torch.FloatTensor).to(self.device)
-        # camera_center = camera_center.type(torch.FloatTensor).to(self.device)
 
         self.gaussian.AddGaussian(point_list_for_gaussian[:3, :], masked_rgb, len(self.SP_img_gt_list))
         del masked_rgb
@@ -368,18 +356,10 @@ class GaussianMapper:
             mask_max_u = super_pixel_index[1, :].le(max_u)
             mask_min_v = super_pixel_index[0, :].ge(min_v)
             mask_max_v = super_pixel_index[0, :].le(max_v)
-            mask = torch.logical_or(torch.logical_and(mask_min_u, mask_max_u),
+            mask = torch.logical_and(torch.logical_and(mask_min_u, mask_max_u),
                                     torch.logical_and(mask_min_v, mask_max_v))
-            masked_index = super_pixel_index[:, mask]
-            #
-            # mask = super_pixel_index[0, :].ge(0)
-            # masked_index = super_pixel_index[:, mask]
-            # mask = masked_index[1, :].ge(0)
-            # masked_index = masked_index[:, mask]
-            # mask = masked_index[0, :].le(self.height-1)
-            # masked_index = masked_index[:, mask]
-            # mask = masked_index[1, :].le(self.width-1)
-            # masked_index = masked_index[:, mask]
+            masked_index = super_pixel_index[:, ~mask]
+
             masked_xyz = SP_xyz[masked_index[0, :], masked_index[1, :], :].T
             masked_rgb = rgb_torch[masked_index[0, :], masked_index[1, :], :]
 
@@ -442,7 +422,7 @@ class GaussianMapper:
                                                                      radii[visibility_filter])
             self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
 
-            if index%4 == 0 and index > 0 and optimization_i == optimization_i_threshold-1 :
+            if index%2 == 0 and index > 0 and optimization_i == optimization_i_threshold-1 :
                 print(f"PRUNE {self.iteration} {self.densification_interval}")
                 self.densification_interval = 0
                 self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
@@ -486,7 +466,7 @@ class GaussianMapper:
                                                                          radii[visibility_filter])
                 self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
 
-                if Flag_densification and i%4 == 0 and optimization_i == (optimization_i_threshold-1):
+                if Flag_densification and i%4 == 0 and optimization_i == int(optimization_i_threshold/2):
                     self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
                                                     self.size_threshold)
 
@@ -541,7 +521,7 @@ class GaussianMapper:
                 self.gaussian.max_radii2D[visibility_filter] = torch.max(self.gaussian.max_radii2D[visibility_filter],
                                                                          radii[visibility_filter])
                 self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
-                if Flag_densification and i%20 == 0 and optimization_i == (optimization_i_threshold-1):
+                if Flag_densification and i%10 == 0 and optimization_i == (0):
                     print(f"PRUNE {self.iteration} ")
                     self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
                                                     self.size_threshold)
@@ -564,12 +544,11 @@ class GaussianMapper:
                 render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform, viz_full_proj_transform,
                                        viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
                 img = render_pkg["render"]  #GRB
-            # print(img)
                 np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()    #RGB
                 cv2.imshow(f"start_gs{i}", np_render)
 
             # Render from keyframes
-            for i in range(0, self.SP_poses.shape[2], 2):
+            for i in range(0, self.SP_poses.shape[2], 3):
                 viz_world_view_transform = self.world_view_transform_list[i]
                 viz_full_proj_transform = self.full_proj_transform_list[i]
                 viz_camera_center = self.camera_center_list[i]
@@ -577,9 +556,8 @@ class GaussianMapper:
                                        viz_full_proj_transform,
                                        viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
                 img = render_pkg["render"]
-                # print(img)
                 np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
-                cv2.imshow(f"rendered{i*5}", np_render)
+                cv2.imshow(f"rendered{int(i*10 / 3)}", np_render)
 
             # Render all frames with predicted camera poses
             frame = self.SP_poses.shape[2]-1
@@ -660,7 +638,7 @@ class GaussianMapper:
                         self.world_view_transform_list[i] = world_view_transform.detach()
                         self.camera_center_list[i] = camera_center.detach()
 
-                self.FullOptimizeGaussian(True)
+                self.FullOptimizeGaussian(status[3])
 
 
         elif status[2]:  # BA
@@ -680,7 +658,7 @@ class GaussianMapper:
                     self.world_view_transform_list[i] = world_view_transform.detach()
                     self.camera_center_list[i] = camera_center.detach()
 
-            self.FullOptimizeGaussian(True)
+            self.FullOptimizeGaussian(status[3])
 
 
         return
