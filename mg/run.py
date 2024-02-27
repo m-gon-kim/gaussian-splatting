@@ -13,7 +13,6 @@ def PlayDataset(dataset, img_pair_q):
     begin_index = 1
     cnt = dataset.get_data_len()
     awake = True
-
     for index in range(cnt):
         rgb, gray, d = dataset.ReturnData(index + begin_index)
         img_pair_q.put([awake, [rgb, gray, d]])
@@ -89,7 +88,6 @@ def GaussianMappingTest(dataset, parameters, mapping_result_q):
         # gaussian_mapper.OptimizeGaussian()
 
 
-
 if __name__ == '__main__':
     img_pair_q = mp.Queue()
     tracking_result_q = mp.Queue()
@@ -100,9 +98,9 @@ if __name__ == '__main__':
     parameters = dataset_class.parameters
 
     process_play_data = mp.Process(target=PlayDataset, args=(dataset, img_pair_q,))
-    process_tracking_torch = mp.Process(target=TrackingTorch, args=(dataset, parameters, img_pair_q, tracking_result_q,))
-    process_mapping = mp.Process(target=MTF_Mapping, args=(dataset, parameters, tracking_result_q, mapping_result_q,))
-    process_gaussian_mapping = mp.Process(target=GaussianMappingTest, args=(dataset, parameters, mapping_result_q,))
+    process_tracking_torch = mp.Process(target=TrackingTorch, args=(dataset, parameters["tracking"], img_pair_q, tracking_result_q,))
+    process_mapping = mp.Process(target=MTF_Mapping, args=(dataset, parameters["mapping"], tracking_result_q, mapping_result_q,))
+    process_gaussian_mapping = mp.Process(target=GaussianMappingTest, args=(dataset, parameters["gaussian"], mapping_result_q,))
 
     process_gaussian_mapping.start()
     process_mapping.start()

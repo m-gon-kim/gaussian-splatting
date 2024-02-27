@@ -1,43 +1,64 @@
-dataset: 'tum'
+dataset: 'replica'
+
 tracking:
   orb_nfeatures: 1000
+  # depth 맵에서 값을 crop하는 범위
+  # replica는 sythesis 데이터라서, crop을 여유있게 해도 좋다.
   depth_crop:
     near: 0.01
-    far: 5.0
+    far: 10.0
+  # keyframe 선택 기준.
+  # angle(radian)이 충분히 벌어지고, shift(meter)가 충분히 떨어져야한다.
+  # 값이 너무 작으면, 과도하게 많은 keyframe이 생겨, loop closing이 잘 안됌.
+  # 값이 너무 크면, 이전 keyframe과의 ORB매칭이 실패함
   kf_selection:
     angle: 0.1
     shift: 0.3
 
 mapping:
   orb_nfeatures: 1000
+  # Mapping 용 xyz crop 기준
   xyz_crop:
+    # 일반적으로 mappoint를 keyframe에 projection할 때 crop 범위
+    # camera space에서 z좌표가 near/far를 벗어나면 crop
+    # projection결과, 이미지 width/height에서 +- padding을 벗어나면 crop
+    # orb hamming distance가 distance 보다 크면 crop
+    # projection한 결과 uv좌표의 차이가 diff pixel보다 크면 crop
     project_map_to_frame:
       near: 0.01
       far: 5.0
       padding: 200
       distance: 50
       diff: 200
+    # loop 탐지 시, update된 pose에서 mappoint를 keyframe에 projection할 때 crop 범위
     project_map_to_frame_loop:
       near: 0.01
       far: 5.0
       padding: 50
       distance: 50
+      diff: 100
+  # Gaussian Splatting keyframe 선택 기준.
   superpixel_kf_selection:
     angle: 0.5
     shift: 0.5
+  # loop 탐지 시, update된 pose가, initial pose와 크게 다르지 않으면 loop closing하지 않는다.
   loop_closing_pose_threshold:
     angle: 0.2
-    shift: 0.1
-  superpixel_creation:
-    region_size: 16
-    ruler: 100
+    shift: 0.2
+  # Loop closing 시, BA iteration 횟수, 3차원 point의 lr, keyfram pose의 lr
   loop_ba:
     iteration: 100
     point_lr: 0.01
     pose_lr: 0.01
 
 gaussian:
+  # Superpixel생성 시 parameter
+  superpixel_creation:
+    region_size: 16
+    ruler: 100
+  # Gaussian frame이 생성되면 gaussian을 증폭시키는 frame interval
   insertion:
     densification_interval: 2
+  # BA이후 gaussian을 증폭시키는 frame interval
   full_optimization:
     densification_interval: 4

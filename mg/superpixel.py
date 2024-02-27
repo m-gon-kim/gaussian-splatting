@@ -10,12 +10,12 @@ import cv2
 
 
 class SuperPixelManager:
-    def __init__(self, width, height):
+    def __init__(self, width, height, parameters):
         self.width = width
         self.height = height
         self.iteration_N = 1
-        self.region_size = 16
-        self.ruler = 100
+        self.region_size = parameters["region_size"]
+        self.ruler = parameters["ruler"]
         self.device = "cuda"
         with torch.no_grad():
             self.indices = torch.zeros((2, self.height, self.width), dtype=torch.float32)
