@@ -67,7 +67,7 @@ class TumDataset:
             cv2.imwrite(f'{self.path}pair/gray/{str(cntr).zfill(5)}.png', gray)
             d_16bit = cv2.imread(f'{self.path}{a[1]}', cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH) / 5000.0
             d_32bit = d_16bit.astype(np.float32)
-            cv2.imwrite(f'{self.path}pair/depth/{str(cntr).zfill(5)}.png', d_32bit)
+            cv2.imwrite(f'{self.path}pair/depth/{str(cntr).zfill(5)}.tiff', d_32bit)
 
             # self.img_pair.append((rgb, d))
             # self.rgb_list.append(rgb)
