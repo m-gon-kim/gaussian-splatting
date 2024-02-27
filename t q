@@ -1,0 +1,1778 @@
+[33mcommit 0c7600a5a4263603d81b51ef0fbeb446fbb512f9[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdataloader[m[33m, [m[1;31morigin/dataloader[m[33m)[m
+Author: seohyun423@korea.edu <seohyun423@korea.ac.kr>
+Date:   Tue Feb 27 14:51:06 2024 +0900
+
+    [DL] Minor error
+    - change png->tiff of InitializeDataset in tum_dataset.py
+
+[33mcommit 7bcd0bc9c0d8679a683b7e236d8bf1b36f0f56a6[m
+Merge: f9c00a1 a2e252e
+Author: seohyun423@korea.edu <seohyun423@korea.ac.kr>
+Date:   Tue Feb 27 13:30:39 2024 +0900
+
+    Merge branch 'main' into dataloader
+
+[33mcommit a2e252e324c35d680313d6fa0f286e0797db0fd4[m
+Author: seohyun423@korea.edu <seohyun423@korea.ac.kr>
+Date:   Tue Feb 27 13:19:57 2024 +0900
+
+    [DL] Solve errors
+     - modify ReadSetting of dataset.py
+     - correct the not initialized read_info_file of scannet_dataset.py
+
+[33mcommit af785226509888cb4ad311fb79c46ffe0c23774b[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Tue Feb 27 12:56:06 2024 +0900
+
+    [Param Tuning] Replice parameter tuning
+     - Parameter tuning
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit f9c00a148027705b75e93f6bdd5a54d0a766bc39[m
+Merge: 497f3f3 009ee6a
+Author: seohyun423@korea.edu <seohyun423@korea.ac.kr>
+Date:   Mon Feb 26 21:39:05 2024 +0900
+
+    Merge branch 'main' of https://github.com/m-gon-kim/gaussian-splatting into dataloader
+
+[33mcommit 009ee6a5203e4a676312c93ef4d4e27930bb6428[m
+Author: Seohyeon Park <100525192+eainx@users.noreply.github.com>
+Date:   Mon Feb 26 21:32:43 2024 +0900
+
+    [DL] Make .gitignore (#6)
+    
+    * [DL] Depth map is loading float32
+     - previously it read unit8
+     - comment out logs in 'tracking.py' and 'gaussian_mapping.py'
+    
+    * [DL] Dataloader setting
+    - make setting.txt and Dataset class
+    
+    * [DL] Dataloader setting
+    - make setting.txt and Dataset class
+    - move read_info_file into InitializeDataset in `scannet_dataset.py`
+    
+    * [DL] Make .gitignore
+     - make .gitignore and add 'setting.txt'
+    
+    ---------
+    
+    Co-authored-by: seohyun423@korea.edu <seohyun423@korea.ac.kr>
+
+[33mcommit 497f3f39030315149b24046fc7a750c7554dd508[m
+Author: seohyun423@korea.edu <seohyun423@korea.ac.kr>
+Date:   Mon Feb 26 21:27:12 2024 +0900
+
+    [DL] Make .gitignore
+     - make .gitignore and add 'setting.txt'
+
+[33mcommit 4819429d9643612910ca7b82e65618bc09784f41[m
+Merge: cbd41f0 6496605
+Author: seohyun423@korea.edu <seohyun423@korea.ac.kr>
+Date:   Mon Feb 26 21:24:24 2024 +0900
+
+    [DL] Dataloader setting
+    - make setting.txt and Dataset class
+    - move read_info_file into InitializeDataset in `scannet_dataset.py`
+
+[33mcommit cbd41f00839bacce5db3a0aa38e9a9a469cdc662[m
+Author: seohyun423@korea.edu <seohyun423@korea.ac.kr>
+Date:   Mon Feb 26 21:17:34 2024 +0900
+
+    [DL] Dataloader setting
+    - make setting.txt and Dataset class
+    - move read_info_file into InitializeDataset in `scannet_dataset.py`
+
+[33mcommit b0b65edfbfd04b05a680739a1f63a7daee3e5b16[m
+Author: seohyun423@korea.edu <seohyun423@korea.ac.kr>
+Date:   Mon Feb 26 19:44:15 2024 +0900
+
+    [DL] Dataloader setting
+    - make setting.txt and Dataset class
+
+[33mcommit a0c1faf7ccfe92234aa662cfb4aaddf824394b2b[m
+Author: m-gon-kim <49800957+m-gon-kim@users.noreply.github.com>
+Date:   Mon Feb 26 18:27:54 2024 +0900
+
+    [TC] Third person view camera setting (#5)
+    
+    * [TC] Third person view camera setting
+     - create new camera position
+     - working on calculating new view transform matrix
+    
+    Signed-off-by: svvj <wjdtmd0105@gmail.com>
+    
+    * [TC] Third person view camera setting
+    - Camera setting finished
+    
+    Signed-off-by: svvj <wjdtmd0105@gmail.com>
+    
+    * [TC] Third person view camera setting
+    - Working on draw camera positions
+    
+    Signed-off-by: svvj <wjdtmd0105@gmail.com>
+    
+    * [TC] Third person view camera setting
+    - Project camera position finished
+    
+    Signed-off-by: svvj <wjdtmd0105@gmail.com>
+    
+    * [Merge] Merge conflict resolved
+    
+    Signed-off-by: svvj <wjdtmd0105@gmail.com>
+    
+    * [TC] Third person view camera setting
+    - Project camera position finished
+    
+    Signed-off-by: svvj <wjdtmd0105@gmail.com>
+    
+    * [Merge] Merge conflict resolved
+    
+    Signed-off-by: svvj <wjdtmd0105@gmail.com>
+    
+    ---------
+    
+    Signed-off-by: svvj <wjdtmd0105@gmail.com>
+    Co-authored-by: svvj <wjdtmd0105@gmail.com>
+
+[33mcommit 60483231c2a87cc7c0ee9a8a3ebd6a026a036992[m
+Author: seohyun423@korea.edu <seohyun423@korea.ac.kr>
+Date:   Mon Feb 26 18:01:22 2024 +0900
+
+    [DL] Depth map is loading float32
+     - previously it read unit8
+     - comment out logs in 'tracking.py' and 'gaussian_mapping.py'
+
+[33mcommit 64966059b4b1fb5e969d60dc6806a34e1abe782a[m
+Author: seohyun423@korea.edu <seohyun423@korea.ac.kr>
+Date:   Mon Feb 26 18:01:22 2024 +0900
+
+    [DL] Depth map is loading float32
+     - previously it read unit8
+     - comment out logs in 'tracking.py' and 'gaussian_mapping.py'
+
+[33mcommit 3322efd96818ad4dafc460087d6c96e345f47019[m
+Author: m-gon-kim <49800957+m-gon-kim@users.noreply.github.com>
+Date:   Mon Feb 26 16:26:43 2024 +0900
+
+    [TC] Third person view camera setting (#3)
+    
+    * [TC] Third person view camera setting
+     - create new camera position
+     - working on calculating new view transform matrix
+    
+    Signed-off-by: svvj <wjdtmd0105@gmail.com>
+    
+    * [TC] Third person view camera setting
+    - Camera setting finished
+    
+    Signed-off-by: svvj <wjdtmd0105@gmail.com>
+    
+    * [TC] Third person view camera setting
+    - Working on draw camera positions
+    
+    Signed-off-by: svvj <wjdtmd0105@gmail.com>
+    
+    ---------
+    
+    Signed-off-by: svvj <wjdtmd0105@gmail.com>
+    Co-authored-by: svvj <wjdtmd0105@gmail.com>
+
+[33mcommit 89035661226db7f8be7a0e614e6bd4df6634ceee[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Mon Feb 26 15:22:37 2024 +0900
+
+    [Dataset] Depth map is loading float32
+     - previously it read unit8
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit 03209a0cce4ceee691e596c66ca20b10387555da[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Mon Feb 26 15:02:38 2024 +0900
+
+    [Minor fix] Merge error is fixed
+     - minor merge error is corrected in `mtf_mapping.py`
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit 018e268cedb3025be8b22dfc93028f389c7cfaf4[m
+Author: m-gon-kim <49800957+m-gon-kim@users.noreply.github.com>
+Date:   Mon Feb 26 14:47:35 2024 +0900
+
+    [DL] Data Loader
+    
+     - dataloader completed
+    
+    Co-authored-by: seohyun423@korea.edu <seohyun423@korea.ac.kr>
+    Co-authored-by: svvj <wjdtmd0105@gmail.com>
+
+[33mcommit 9fc30ef675dcfaac16abf60c806b6380f8017299[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Mon Feb 26 14:02:23 2024 +0900
+
+    [LC] Loop Closing skeleton code
+     - Keyframes are selected sparsley
+     - Trace calcualation is corrected
+     - BA is improved
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit 729b65a8e32128369b281aca8439c84d2ce5e869[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Sun Feb 25 21:40:34 2024 +0900
+
+    [WIP] Backup. Loop Closing
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit bd88b9a45bc38355a9084d069527a39585edd01d[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Fri Feb 23 18:14:16 2024 +0900
+
+    [WIP] Loop closing - work in progress
+     - try and errors
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit 6b351af0dba7f6edaafd03422575ba059c598f8a[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Mon Feb 19 17:11:26 2024 +0900
+
+    [LC] Loop closing
+     - hamming distance updated
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit 327c9c468319c5ed8fbc8666647843f33dd0741c[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Fri Feb 16 23:47:04 2024 +0900
+
+    [LC] Loop closed
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit fa0bfb0b60c38eb5c7bdbabe608c025722ac0eb6[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Fri Feb 16 02:17:04 2024 +0900
+
+    [M2F] Map to Frame approach
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit 54556d0de2e05e47ab92070b40e6154e35472da8[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Thu Feb 8 00:46:56 2024 +0900
+
+    [WIP] Before, pointclouds pointer
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit 7ce05425edb88232d70edffc24d210869a9b06a3[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Fri Jan 19 05:04:29 2024 +0900
+
+    [Improvement] Speed and Memory usage improved
+     - mapping
+     - g-mapping
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit f8313f795d0371166105c6e45232843e900e41e3[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Thu Jan 18 00:15:06 2024 +0900
+
+    [Bug Fix] Working code for GS slam
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit a22a9604b97dd87add7eaa28b08c5830c3680f89[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Fri Jan 5 21:12:31 2024 +0900
+
+    BA proto code
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit a99bd84907b281732de2e8ac90ce08da3e5b23d7[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Tue Jan 2 05:01:38 2024 +0900
+
+    [Proto] proto type without BA
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit dd5aa29d5b260198f48ff9b1bd92ebbf704fff2e[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Thu Dec 28 22:15:17 2023 +0900
+
+    Split 3 processes
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit 4246b1e7d315fcb318489d9e241641c1908c6740[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Thu Dec 28 13:05:10 2023 +0900
+
+    Skeleton Code
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit 756a95d87b95b4442166c56e366a71d28c6df868[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Wed Dec 27 15:04:29 2023 +0900
+
+    Gaussian renderer test code
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit 7c35e9a9de883a2286b7382bb70db447c688ec32[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Wed Dec 13 16:57:23 2023 +0900
+
+    [Init] Initially modified originall code
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit 2eee0e26d2d5fd00ec462df47752223952f6bf4e[m
+Author: Bernhard Kerbl <kerbl@icg.tugraz.at>
+Date:   Wed Nov 1 13:10:29 2023 +0100
+
+    Bumped sibr viewers
+
+[33mcommit f11001b46c5c73a0a7d553353c898efd68412abe[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Oct 23 16:02:30 2023 +0200
+
+    Random background flag added
+
+[33mcommit 414b553ef1d3032ea634b7b7a1d121173f36592c[m
+Merge: 3535406 fecb233
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Sun Sep 24 17:23:00 2023 +0200
+
+    Merge pull request #203 from Khoa-NT/patch-1
+    
+    Fix typo in README.md
+
+[33mcommit 35354068d7d96c59e1a514a8fe250c38c6d410f3[m
+Merge: ea68bdf 2de5997
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Sun Sep 24 17:21:36 2023 +0200
+
+    Merge pull request #236 from eltociear/patch-1
+    
+    Fix typo in README.md
+
+[33mcommit 2de59977324619ec0dd203cca0c5c823aec871d5[m
+Author: Ikko Eltociear Ashimine <eltociear@gmail.com>
+Date:   Mon Sep 25 00:14:49 2023 +0900
+
+    Fix typo in README.md
+    
+    intial -> initial
+
+[33mcommit fecb2331ca76734cb341b183948c3b2e24bf2575[m
+Author: Khoa Nguyen-Tuan <12138158+Khoa-NT@users.noreply.github.com>
+Date:   Sat Sep 16 09:17:33 2023 +0900
+
+    Fix typo in README.md
+    
+    Typo "--densification_interal" in "Command Line Arguments for train.py"
+
+[33mcommit ea68bdf29c3b11d1a7ec2e5a11b1af2c266bd7f2[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Sep 5 19:30:53 2023 +0200
+
+    Bump rasterizer, faster text loading
+
+[33mcommit b2ada78a779ba0455dfdc2b718bdf1726b05a1b6[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Wed Aug 30 13:27:54 2023 +0200
+
+    Update README.md
+
+[33mcommit 47800f5a0e0ec85a8480474416d40f4eed73435e[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Wed Aug 30 13:26:54 2023 +0200
+
+    Update README.md
+
+[33mcommit 353b2e9748e1fab456d78bd31962da0118c23746[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Wed Aug 30 12:15:13 2023 +0200
+
+    Update README.md
+
+[33mcommit 87d4f5b9d49607767ca6a16a3be9026cfca9116c[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Wed Aug 30 03:12:49 2023 +0200
+
+    Update README.md
+
+[33mcommit 28614d0855d92236de377a5f3901f0de31ce75eb[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Wed Aug 30 03:10:25 2023 +0200
+
+    Update README.md
+
+[33mcommit 36f0687591d481b503c0a78c08eb40f2ff9e7353[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Wed Aug 30 03:09:40 2023 +0200
+
+    Update README.md
+
+[33mcommit 8189cd8d5d8e9654e5b501057237cfe58d8b85ca[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Tue Aug 29 14:59:19 2023 +0200
+
+    Update README.md
+
+[33mcommit f4b32a039c9143dfcb57503410fde986d6c636f3[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Tue Aug 29 14:19:19 2023 +0200
+
+    Update README.md
+
+[33mcommit 436ca311258bc7be9da34c2cbd0f4fcfb871d6c8[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Tue Aug 29 14:17:54 2023 +0200
+
+    Update README.md
+
+[33mcommit 9d977c702bc8819bfec26992f541dc6162074267[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Mon Aug 28 16:32:00 2023 +0200
+
+    Update README.md
+
+[33mcommit edbaa4158fb0fd3d0e66f780e90459b118b2ecdd[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Mon Aug 28 16:31:21 2023 +0200
+
+    Update README.md
+
+[33mcommit bb8e1a98bd4e908402e621aa8bd12f967e227ecf[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Mon Aug 28 16:28:45 2023 +0200
+
+    Update README.md
+
+[33mcommit 0b3519bca56e0ab38f85d5aa15d8aae7f526a4fe[m
+Merge: 0f125cb 87e829c
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 23:28:06 2023 +0200
+
+    Merge pull request #122 from szymanowiczs/main
+    
+    Update .gitmodules to include .git for SIBR_viewers
+
+[33mcommit 87e829c002b2e0df563f8a87f84471bad732910a[m
+Author: Stan Szymanowicz <szymanowiczs@gmail.com>
+Date:   Thu Aug 24 22:00:57 2023 +0100
+
+    Update .gitmodules to include .git for SIBR_viewers
+
+[33mcommit 0f125cbd5f21f2968c8012b480e28ca016927ef7[m
+Author: Jakub Červený <jakub.cerveny@gmail.com>
+Date:   Thu Aug 24 17:38:48 2023 +0200
+
+    Fix conversion from Blender to COLMAP coords in NeRF camera import. (#111)
+    
+    Co-authored-by: Jakub Červený <jakub.cerveny@melowntech.com>
+
+[33mcommit 073775efbde8c76bbe86e601d07cad96877957ad[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:24:25 2023 +0200
+
+    Update README.md
+
+[33mcommit da3bee9bce555ad114bff4c0bede5266ad485fe2[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:24:16 2023 +0200
+
+    Update README.md
+
+[33mcommit 746d1d46259b8811e4e69ecc7c0f0a633d30a2f9[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:24:06 2023 +0200
+
+    Update README.md
+
+[33mcommit c93907cf0a987af5d6c4664458e255de0f60f6ba[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:23:53 2023 +0200
+
+    Update README.md
+
+[33mcommit 483cbb1a5bce95ed49ffb252d01bb6d0b683ee0f[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:23:05 2023 +0200
+
+    Update README.md
+
+[33mcommit 0609a3e933bcbd4c6f0581479e9770065c2386ee[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:21:42 2023 +0200
+
+    Update README.md
+
+[33mcommit 30c28aefb10e770484b51110370772cda2384d45[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:21:11 2023 +0200
+
+    Update README.md
+
+[33mcommit c6c7fe89247a17f013e9b36c04f06aecdabb03e0[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:20:43 2023 +0200
+
+    Update README.md
+
+[33mcommit ba70312818bd14a880788948b915de2cfaebd96d[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:20:17 2023 +0200
+
+    Update README.md
+
+[33mcommit e5bbf7ff49306754f93d85430afc7a1b37e5eded[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:19:38 2023 +0200
+
+    Update README.md
+
+[33mcommit deef616a31ddb7c741fa46263ba55cf3f8179ec5[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:18:59 2023 +0200
+
+    Update README.md
+
+[33mcommit 95cb14d2b25113b4c1d1b3b5869906ce42bd4b9b[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:10:31 2023 +0200
+
+    Update README.md
+
+[33mcommit f7cfc0f87716bfca94fa78241ca3f9e7ee0dd29e[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:09:53 2023 +0200
+
+    Update README.md
+
+[33mcommit 29fdaa3402a44264dc575f46e23a4d11bd993f22[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:07:36 2023 +0200
+
+    Update README.md
+
+[33mcommit f7a116fb1397d9842239127d39dc212f93171f70[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Mon Aug 14 10:25:42 2023 +0200
+
+    Update README.md
+
+[33mcommit b4daa132b920b02614c020104e44246a09a82c25[m
+Merge: ba43a8c 4ce38f5
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Sun Aug 13 20:06:28 2023 +0200
+
+    Merge pull request #88 from eltociear/main-1
+    
+    Fix typo in README.md
+
+[33mcommit 4ce38f5b24f1cff62036afa43722df7b91bd0d47[m
+Author: Ikko Eltociear Ashimine <eltociear@gmail.com>
+Date:   Mon Aug 14 02:57:08 2023 +0900
+
+    Fix typo in README.md
+    
+    iewers -> viewers
+
+[33mcommit ba43a8c68a4987b96e1ef9393760ba6cf948ab35[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 3 10:47:42 2023 +0200
+
+    Update README.md
+
+[33mcommit c586713d02b85020756f2f299bdde5e34cedd7fd[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Aug 1 15:16:18 2023 +0200
+
+    Bump viewer version
+
+[33mcommit fc7432d8b6abb258933c6cd6eef9bd8942b7e295[m
+Author: JonathonLuiten <jonoluiten@gmail.com>
+Date:   Tue Aug 1 01:06:33 2023 -0400
+
+    Typo in gaussian_renderer.__init__.py (#68)
+    
+    fixed a typo
+
+[33mcommit a63d0bdd261550d5c02c8b1863e97de705b1ad02[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Jul 27 18:23:18 2023 +0200
+
+    Update README.md
+
+[33mcommit ad6f40735eecaa74904ed9667ba376b820acc805[m
+Merge: 666a5ee 8c75a90
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Jul 27 11:04:35 2023 +0200
+
+    Merge pull request #62 from HrsPythonix/improve-robustness-ply-loading
+    
+    Add sort to ensure right order of properties read from ply file
+
+[33mcommit 8c75a90f56f14f3af619d4061525dfdb3182ae64[m
+Author: Pythonix Huang <370048201@qq.com>
+Date:   Thu Jul 27 16:49:45 2023 +0800
+
+    Add sort to ensure right order of properties read from ply file
+
+[33mcommit 666a5ee203daaed5aad8b5ebe90a7250cb136322[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 26 10:24:56 2023 +0200
+
+    Reestablished control over pipeline from remote
+
+[33mcommit add0ada0e47493cda91f743019f99e39bdeb0657[m
+Author: Bernhard Kerbl <kerbl@icg.tugraz.at>
+Date:   Tue Jul 25 19:33:40 2023 +0200
+
+    Bumped viewers
+
+[33mcommit 8742c98b9f52d95b1f3b22aa5301b26804bd8d27[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Jul 25 11:20:30 2023 +0200
+
+    Bumped viewer
+
+[33mcommit 39f54b758c440346fcea6df1d015b1eab6fd08cf[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 23 22:50:37 2023 +0200
+
+    Debug flags documented
+
+[33mcommit 91f16deb45542072306439be1239a4fc2dee9422[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 23 22:41:32 2023 +0200
+
+    Debugging behavior
+
+[33mcommit d4fa4779d52cd7d79787cecd62b398cec348ee5e[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 23 12:48:17 2023 +0200
+
+    Debugging functionality
+
+[33mcommit 4ab80a22157d8ba8388c66222c074c4d37e10d8c[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 20 20:17:52 2023 +0200
+
+    Bumped SIBR
+
+[33mcommit 75c7c767054de83ebcc06c417e71695a66735d5b[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 20 16:16:34 2023 +0200
+
+    Bumped SIBR
+
+[33mcommit 49afb8edb3282b8bd2d8e1a32c00f60832419ae9[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 20 00:50:35 2023 +0200
+
+    Restored diff rasterizer version
+
+[33mcommit 9f6e55e66606fb7c3e490b5a7f4cc02970cefb72[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 20 00:45:24 2023 +0200
+
+    Bumped SIBR viewers
+
+[33mcommit e56220315bd0dfc3eb5c0f0db8137504697bf523[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 16 17:38:12 2023 +0200
+
+    Bumped SIBR
+
+[33mcommit cb5fb83b39c238312267cb33b8442e5c612712dc[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Sun Jul 16 16:41:17 2023 +0200
+
+    Update README.md
+
+[33mcommit 7ce1b2d5ad25e224d15440f3cbbebabbdab8d5e2[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Sun Jul 16 16:40:18 2023 +0200
+
+    Update README.md
+
+[33mcommit e20ad9bb349b24674a23890e7d1876a92af0b443[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 16 16:31:19 2023 +0200
+
+    Layout
+
+[33mcommit ade20c1211a646231a6d4211df06e299c6ab9252[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 16 16:30:18 2023 +0200
+
+    Replaced markdown with proper html because it doesn't work otherwise :)
+
+[33mcommit 3ae1bdafb9a16b006af63ac3349da687e560f412[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 16 16:28:31 2023 +0200
+
+    Added LR example
+
+[33mcommit 5f257e6a41ae1102a2eba764864923c5dc26d4eb[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 16 16:26:13 2023 +0200
+
+    Added LR example
+
+[33mcommit 724538462696263a3bc82ad8f0f1d93305567616[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 16 16:17:16 2023 +0200
+
+    Replaced markdown with proper html because it doesn't work otherwise :)
+
+[33mcommit aff5dd624bceb815727ef7cd594bb220957090be[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 16 16:00:57 2023 +0200
+
+    Replaced markdown with proper html because it doesn't work otherwise :)
+
+[33mcommit 098fdbdb17c993bee5fccd172a158f8f4e3feeb1[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 16 15:49:06 2023 +0200
+
+    Added LR example
+
+[33mcommit 6891d458f9e656fde549f57da28d26c4c10ff073[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 16 11:48:04 2023 +0200
+
+    Scaling LR fixed
+
+[33mcommit ab6d668c51ac6defade2d9c82b92b17cf587413b[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sat Jul 15 11:12:25 2023 +0200
+
+    Rolling back fixed spatial lr
+
+[33mcommit 5c04e3574315ff9f4df1a8d5d34795bb90d7b986[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Fri Jul 14 21:34:59 2023 +0200
+
+    Update readme
+
+[33mcommit 6b54263364f759d4c64da4982e64bd00b4bd239c[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Fri Jul 14 21:09:46 2023 +0200
+
+    Added checkpoints
+
+[33mcommit ef918fc9e3be0ce7879df921d3d91b86dc865f25[m
+Merge: 737f754 e46b495
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Fri Jul 14 21:24:32 2023 +0200
+
+    conflict resolved
+
+[33mcommit 737f75406999ff1bc2196bd107bc89caf09afe88[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Fri Jul 14 16:18:22 2023 +0200
+
+    Pushed diff-rasterizer
+
+[33mcommit e46b49543f898fddd0113bb9e5c790b18ce52e86[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Fri Jul 14 01:52:00 2023 +0200
+
+    Support for varying image sizes
+
+[33mcommit 017da305b1ff9c427b617d65c8c83cfb71a41324[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 13 19:29:54 2023 +0200
+
+    Update readme
+
+[33mcommit 6d61b9953400b92c273dbdb60cc8e6abc8ec1b85[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 13 19:20:41 2023 +0200
+
+    viewer bump
+
+[33mcommit 42a83b225f82eff3968372b0de2ceb4777c7ac34[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 13 19:10:03 2023 +0200
+
+    Bumped sibr
+
+[33mcommit 493535a5766a0f1a9b850c28f6c7d4185e8431a1[m
+Author: Javi Carnero <javier@carnero.net>
+Date:   Thu Jul 13 18:44:58 2023 +0200
+
+    Improved error handling at convert.py (#32)
+    
+    Print error and exists if colmap or imagemagic fails. This avoid continuing the execution with errors and failing weirldly afterwards.
+
+[33mcommit 9f45a4f4e7dcef8963e1ecfc30643a33b2252752[m
+Author: Bernhard Kerbl <kerbl@cg.tuwien.ac.at>
+Date:   Thu Jul 13 15:34:46 2023 +0200
+
+    Bumped viewers
+
+[33mcommit 716a9dc1113fd669c39b8788049266a0e22c6f86[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 13 14:50:01 2023 +0200
+
+    Bump SIBR
+
+[33mcommit 44163b83a6c96b4431da58a08fa5b7337c23c09b[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 13 14:21:52 2023 +0200
+
+    Better linux build
+
+[33mcommit 35698b63d9bde25cf33f0c1412eb0f6064a174d5[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 13 14:21:16 2023 +0200
+
+    Better linux build
+
+[33mcommit 7d8035ad10dd8222fa44a05138748bb1f7ab2773[m
+Merge: ec6a2b2 b1a35bc
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 13 13:19:34 2023 +0200
+
+    Merge branch 'release' into develop
+
+[33mcommit b1a35bc94bfb1a94c6f8aeca341978b4d32e094b[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 13 13:12:45 2023 +0200
+
+    Changed alpha init spatial lr behavior
+
+[33mcommit 73ad40f414ea7071548ccd1f7e90a60d0cd0cb9d[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 15:38:28 2023 +0200
+
+    fixed learning rate for spatial
+
+[33mcommit 2d2d5ce1c365981a387269d0e5f43cbd5cabfccc[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 12:14:22 2023 +0200
+
+    Undo spatial lr removal
+
+[33mcommit 770f6b05e2a31b14e2b5fe15665b16f3dca70da2[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 12:10:03 2023 +0200
+
+    Clarification
+
+[33mcommit ec6a2b24ffb09a41478d9480817b609143aa13ce[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 13 13:12:45 2023 +0200
+
+    Changed alpha init spatial lr behavior
+
+[33mcommit d843dc1224605d684049f9176b866409e3ee7f22[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Wed Jul 12 21:25:21 2023 +0200
+
+    Update README.md
+
+[33mcommit 8abb25b632688dadc9ea0f78d69e78fce9caddf3[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Wed Jul 12 21:24:13 2023 +0200
+
+    Update README.md
+
+[33mcommit 989320fdf2563dc06bef852dc78ebd2cf820c5ba[m
+Author: Pythonix Huang <370048201@qq.com>
+Date:   Thu Jul 13 02:30:45 2023 +0800
+
+    Provide --data_device option to put data on CPU to save VRAM for training (#14)
+    
+    * Provide --data_on_cpu option to save VRAM for training
+    
+    when there are many training images such as in large scene, most of the VRAM are used to store training data, use --data_on_cpu  can help reduce VRAM and make it possible to train on GPU with less VRAM
+    
+    * Fix data_on_cpu  effect on default mask
+    
+    * --data_on_cpu to --data_device
+    
+    * update readme
+    
+    * format warning infos
+
+[33mcommit ac267eb6a214f6a86f8a1fa166815d6e73c10b8c[m
+Merge: ccbaa56 3c77073
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 15:57:17 2023 +0200
+
+    Merge branch 'main' into develop
+
+[33mcommit 3c770735280d2f29477dc3ad18df545050fc4b6d[m
+Merge: e44ee39 cebfc97
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 15:57:03 2023 +0200
+
+    Merge branch 'release'
+
+[33mcommit cebfc978f3f2b4d95cc79522c857976dd0f2fea4[m
+Author: Bernhard Kerbl <kerbl@cg.tuwien.ac.at>
+Date:   Wed Jul 12 15:28:53 2023 +0200
+
+    Bump SIBR
+
+[33mcommit f5f7c4d58ef3a0ba0a46643595ed887b7fef41b0[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 12:14:22 2023 +0200
+
+    Undo spatial lr removal
+
+[33mcommit 62fafe30d03e7e8d69f020fc51718822f2e809bc[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 15:56:16 2023 +0200
+
+    merged
+
+[33mcommit ccbaa568408333731fa45083acebcab2dd48f7e9[m
+Merge: f022f0c e44ee39
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 15:48:41 2023 +0200
+
+    Merge branch 'main' into develop
+
+[33mcommit e44ee39d8d0a56fa49e7a4ba613090dd4d3afe16[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 15:37:28 2023 +0200
+
+    Update readme
+
+[33mcommit f022f0c0482d3b16018d346c774cb1c7ca191d19[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 15:38:28 2023 +0200
+
+    fixed learning rate for spatial
+
+[33mcommit ff529deb6093dc61b24d8dcbebc86dec5c36468e[m
+Author: Bernhard Kerbl <kerbl@cg.tuwien.ac.at>
+Date:   Wed Jul 12 15:28:53 2023 +0200
+
+    Bump SIBR
+
+[33mcommit aafdd1039b037bfb34864237f01b5ff068926cc3[m
+Merge: b34c43e fef0b4a
+Author: Bernhard Kerbl <kerbl@icg.tugraz.at>
+Date:   Wed Jul 12 14:08:53 2023 +0200
+
+    Merge branch 'main' of https://github.com/graphdeco-inria/gaussian-splatting
+
+[33mcommit b34c43e641fdbbfa970a1f30629c9dee8f7bf85f[m
+Author: Bernhard Kerbl <kerbl@icg.tugraz.at>
+Date:   Wed Jul 12 14:08:45 2023 +0200
+
+    Bumped sibr
+
+[33mcommit bf2346c827f5d16cc246973ac08fa5d2d4090054[m
+Merge: fef0b4a be99652
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 14:03:49 2023 +0200
+
+    Merge branch 'main' into release
+
+[33mcommit fef0b4a41da6e63ba25c2244356b57a8d9b7c5dc[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 14:03:28 2023 +0200
+
+    Better description of GPU selection
+
+[33mcommit be4f655c1d42a746dc0b350ccdd9fefc7bd8dc6a[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Wed Jul 12 13:30:06 2023 +0200
+
+    Update README.md
+
+[33mcommit be996528c0f631d5c569986a64faecb9a4610202[m
+Merge: d4e1e92 6f1e3ec
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 12:16:19 2023 +0200
+
+    Merge branch 'release'
+
+[33mcommit 6f1e3ec83a4fa238e78db06bcac0de77356be82a[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 12:14:22 2023 +0200
+
+    Undo spatial lr removal
+
+[33mcommit b7031f116f688f896c384359e731d3e5f6014e21[m
+Author: Bernhard Kerbl <kerbl@icg.tugraz.at>
+Date:   Wed Jul 12 12:03:48 2023 +0200
+
+    Bump viewer version
+
+[33mcommit d4e1e922bdf3806cd57beacfb68be795cf3ebdac[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 12:14:22 2023 +0200
+
+    Undo spatial lr removal
+
+[33mcommit 07ee3be62ed144b3f7e208ed8fb5a24eed2dd26a[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 12:11:57 2023 +0200
+
+    Clarification
+
+[33mcommit bd99f9a45debec0917e402ac29a77017c77e9b86[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 12:10:47 2023 +0200
+
+    Clarification
+
+[33mcommit 7e126c02c6365eda321e0335a488b69686ff928d[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 12:10:03 2023 +0200
+
+    Clarification
+
+[33mcommit 51705d4cb21943e9f7f445dedda5a4a2825fda7a[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 12:11:57 2023 +0200
+
+    Clarification
+
+[33mcommit f43f71b9fb622487c702c6639d8fa746576d2ff2[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 12:10:47 2023 +0200
+
+    Clarification
+
+[33mcommit 13f856f9596064ce8aa7f27e88edc546db706935[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 12:10:03 2023 +0200
+
+    Clarification
+
+[33mcommit 35b89fca854ca714340c9f270d4a4dcf923cb731[m
+Merge: 9b85296 02956b6
+Author: Bernhard Kerbl <kerbl@icg.tugraz.at>
+Date:   Wed Jul 12 12:03:55 2023 +0200
+
+    Merge branch 'main' of https://github.com/graphdeco-inria/gaussian-splatting
+
+[33mcommit 9b852964ff409ca38f22fa356776fb3486e1a678[m
+Author: Bernhard Kerbl <kerbl@icg.tugraz.at>
+Date:   Wed Jul 12 12:03:48 2023 +0200
+
+    Bump viewer version
+
+[33mcommit 02956b6587cfadce951a81c6987b0b7ffe70258b[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 11:51:34 2023 +0200
+
+    Removed .txt
+
+[33mcommit 07c18da67384f5ceb131b4efb539760f257aad9c[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 12 02:01:01 2023 +0200
+
+    bump rasterizer
+
+[33mcommit da65fecd9c22dbc0227a1a4f55e4d32f86efaabd[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Jul 11 20:58:19 2023 +0200
+
+    Specified no clang
+
+[33mcommit 267c76a44d0229710cb5d0136c1f36983de24c10[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Jul 11 20:32:09 2023 +0200
+
+    Expected structure
+
+[33mcommit 9daca293b74aa5b27a6786a4d92dcb70c57e654a[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Jul 11 20:13:00 2023 +0200
+
+    highlight
+
+[33mcommit ba677c3820700c9137256c882669c59b82ab3c21[m
+Merge: a60ab3f d0378ec
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Jul 11 20:09:42 2023 +0200
+
+    Merge branch 'release' into develop
+
+[33mcommit d0378eca90424f03c786541247c81f3f01bc0b2f[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Jul 11 20:05:11 2023 +0200
+
+    Mention 11.6 trouble
+
+[33mcommit 3855ce81b15631e6ec77193b8c2797d57883d69d[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Jul 11 19:35:24 2023 +0200
+
+    Instructions for Focal Fossa
+
+[33mcommit a60ab3f851f72c660b6662bea045e031821fc293[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Jul 11 19:35:24 2023 +0200
+
+    Instructions for Focal Fossa
+
+[33mcommit 5f4490147394e433bf3a716c587ee39b8972c666[m
+Merge: 7228fc7 f4dfb3d
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Tue Jul 11 13:24:07 2023 +0200
+
+    Merge pull request #16 from HrsPythonix/fix-spelling
+    
+    Fix spelling error (posititon to position as README said)
+
+[33mcommit f4dfb3d3bf9931aae5ff47e096320468cc71104e[m
+Author: Pythonix Huang <370048201@qq.com>
+Date:   Tue Jul 11 17:15:52 2023 +0800
+
+    Fix spelling error (posititon to position as README said)
+
+[33mcommit 7228fc7bd91b7c1de450dfd1bfd9e41d46e81e95[m
+Merge: 7e7b5e8 9490ef7
+Author: Bernhard Kerbl <kerbl@icg.tugraz.at>
+Date:   Tue Jul 11 10:55:36 2023 +0200
+
+    Merge branch 'main' of https://github.com/graphdeco-inria/gaussian-splatting
+
+[33mcommit 9490ef76125c3fbfee362039b816702f3241735d[m
+Author: JonathonLuiten <jonoluiten@gmail.com>
+Date:   Mon Jul 10 18:45:55 2023 -0400
+
+    fixed tensorboard update images by adding batch dimension (#9)
+
+[33mcommit b89771f0ba472ebe88ad5d2b988fd99ab0706ed7[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Jul 10 23:04:05 2023 +0200
+
+    Bump simple knn
+
+[33mcommit 62ec34c9fdeb451be810e5e484827a6ebed9a6db[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Jul 10 20:18:51 2023 +0200
+
+    Better tree
+
+[33mcommit d29178568e8d4eebbf1da40197ce3c34827fe7e9[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Jul 10 20:10:42 2023 +0200
+
+    Better readme
+
+[33mcommit bc8b8bfcb16b566e324cad6845e58ab47a473ef9[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Jul 10 18:14:40 2023 +0200
+
+    Clarification
+
+[33mcommit 0dfa61da0982e0d412b3ec9782406b9fbbe84120[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Jul 10 18:12:34 2023 +0200
+
+    Let's be exact here
+
+[33mcommit 6073463220e7d38ecb704e1c07fa10cbabf1f728[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Jul 10 18:11:03 2023 +0200
+
+    Fixed typo
+
+[33mcommit c1b61aad155e43541e234306718a6125272dfcaf[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Jul 10 17:58:17 2023 +0200
+
+    Clearer conversion explanation
+
+[33mcommit b9fa8d150821901a11b65f3b18c1192c2158da5b[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Jul 10 15:50:38 2023 +0200
+
+    Extra comment
+
+[33mcommit 6a50784106739ad8424e5ad1c6eb422a58b250e8[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Jul 10 14:40:51 2023 +0200
+
+    Better camera model error message
+
+[33mcommit 06afb7e616999437fad2b4a56cf0f8005ff9fd06[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Jul 10 11:12:54 2023 +0200
+
+    Advice for extensive data sets
+
+[33mcommit 5998454e5cd4fec9e86119a82ce1799c79ad5dcd[m
+Merge: b81fc19 f1d543c
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Mon Jul 10 10:12:20 2023 +0200
+
+    Merge pull request #1 from yzslab/main
+    
+    fix FileNotFoundError when loading colmap sparse model
+
+[33mcommit f1d543c44fafe665af6c976b05901a05988bdbc2[m
+Author: Zhensheng Yuan <564361+yzslab@users.noreply.github.com>
+Date:   Mon Jul 10 14:20:49 2023 +0800
+
+    fix FileNotFoundError when reading points3D
+
+[33mcommit b81fc19c347ca915276226c0c07906415c8b63d2[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Jul 10 02:51:34 2023 +0200
+
+    Typo fix, better explanation in reamde
+
+[33mcommit af8651989624400220859688c11be7ef4c57fddf[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Jul 10 02:18:28 2023 +0200
+
+    Readme update
+
+[33mcommit 285602801be081c0d13b2e925dc75616fa9ac7b8[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Jul 10 02:15:22 2023 +0200
+
+    Readme update
+
+[33mcommit ae9ac6885976566469f12f286feb1bfff36c1f36[m
+Merge: ebf818e 298894b
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Jul 10 02:07:39 2023 +0200
+
+    Merge branch 'release'
+
+[33mcommit 298894b3170038a4e2ad5ab2a82f4ef65ef008e1[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Jul 10 01:56:35 2023 +0200
+
+    back to main for gaussian_splatting
+
+[33mcommit e32275e3f7c006f2f0e6fb4b2d0f7914b9e61038[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Jul 10 01:55:15 2023 +0200
+
+    Bumped sibr version
+
+[33mcommit e321295e8278fa3ad86625c113c700c198690329[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Jul 10 01:41:39 2023 +0200
+
+    Bumped SIBR version
+
+[33mcommit 7e7b5e81e418826a968be8f6c5c7ed45d17ec909[m
+Merge: 3ac401c ebf818e
+Author: Bernhard Kerbl <kerbl@icg.tugraz.at>
+Date:   Mon Jul 10 01:58:10 2023 +0200
+
+    Merge branch 'main' of https://gitlab.inria.fr/bkerbl/gaussian-splatting
+
+[33mcommit ebf818e58c6356ca01e21578a38dbe2b0a693be7[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Jul 10 01:56:35 2023 +0200
+
+    back to main for gaussian_splatting
+
+[33mcommit bde813f5540ce6529867be8cb759f1018803ad74[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Jul 10 01:55:15 2023 +0200
+
+    Bumped sibr version
+
+[33mcommit 3ac401cff4af2dd765924a859749d71a8ce9cff7[m
+Merge: c0216f8 f228436
+Author: Bernhard Kerbl <kerbl@icg.tugraz.at>
+Date:   Mon Jul 10 01:48:04 2023 +0200
+
+    Merge branch 'main' of https://gitlab.inria.fr/bkerbl/gaussian-splatting
+
+[33mcommit f2284362d47ef88c22df0149482e6f07afcc037f[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Jul 10 01:41:39 2023 +0200
+
+    Bumped SIBR version
+
+[33mcommit c0216f83dde89a02d6e55ef7cc5e027cc7773994[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Sun Jul 9 20:14:27 2023 +0200
+
+    Update README.md
+
+[33mcommit 725bbcc17f7ad8a6863237c970d461c21bfa59ac[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 9 19:55:43 2023 +0200
+
+    Update readme
+
+[33mcommit 2361536039f005a3e7cd9a010eaa1ce33092d226[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 9 19:43:29 2023 +0200
+
+    Update reamde
+
+[33mcommit 4990f11a9acddc5d81e3371b99bef678fef13add[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 9 19:17:29 2023 +0200
+
+    commit changes
+
+[33mcommit 8230f4086fecc6d93cd5c31cafc28f167e90fed7[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Sun Jul 9 19:05:05 2023 +0200
+
+    Update README.md
+
+[33mcommit 9c91708865d33256f85bb2ebfbe9d6c13bb6ab21[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Sun Jul 9 18:52:10 2023 +0200
+
+    Update README.md
+
+[33mcommit 17b2a06945d8a420bd3ca333397ac05ec24e5c12[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 9 18:11:09 2023 +0200
+
+    Fixed typos, documented viewer flags
+
+[33mcommit 5776ed5e4e4e655d5458687fd81bcdb9165c5dc6[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 9 17:39:01 2023 +0200
+
+    updated readme
+
+[33mcommit d190e19d7734a30d16bc250e96ba9a745708a1f6[m
+Author: graphdeco <107077742+graphdeco@users.noreply.github.com>
+Date:   Sun Jul 9 17:30:28 2023 +0200
+
+    Update README.md
+
+[33mcommit 54c77a415f73a3c4ee1c8ac6d3010831f5e78ab4[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 9 16:18:54 2023 +0200
+
+    Bumped version
+
+[33mcommit 29053b7cb065922c159fad231686e76f6367dfe0[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 9 16:08:01 2023 +0200
+
+    it's k, not m
+
+[33mcommit 4684f501b3c2341f472a834800823b9d27d61052[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 9 15:42:15 2023 +0200
+
+    Bump viewers, changed readme
+
+[33mcommit a42439758f0fa2fd70847bcc9bb4251c7157dc0c[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 9 15:32:58 2023 +0200
+
+    Updates
+
+[33mcommit c1620234b128679da355e74148d779dea99f6cdc[m
+Author: graphdeco <107077742+graphdeco@users.noreply.github.com>
+Date:   Sun Jul 9 15:21:30 2023 +0200
+
+    Update README.md
+    
+    SIBR links
+
+[33mcommit 8943f57b268a4c39f4bf5b65f7c21d68f236cc7c[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 9 15:14:31 2023 +0200
+
+    Update
+
+[33mcommit 424012cd0dec6d7227887f27bd233ab186997273[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 9 14:36:02 2023 +0200
+
+    Changes to README, rescale from 1.6mpix
+
+[33mcommit 27399f2bcaa966e5cbf83008945c058d2b3e95d9[m
+Merge: 9a6a5d9 490fab1
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sat Jul 8 18:20:22 2023 +0200
+
+    Merge branch 'develop'
+
+[33mcommit 490fab14dd045bc135b2d00cbe441d9e31aaeb2a[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sat Jul 8 18:20:08 2023 +0200
+
+    Auto rescaling, including warning and documentation
+
+[33mcommit 9a6a5d9cdf3631a20f429f9937efdd94d73fb07f[m
+Merge: 3c20c7b d73e532
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sat Jul 8 17:40:15 2023 +0200
+
+    Merge branch 'develop'
+
+[33mcommit d73e532ecf22d291d96bf99cbb5aaf5ca3cd3a88[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sat Jul 8 17:40:00 2023 +0200
+
+    Update readme
+
+[33mcommit 3c20c7b42762f90ead225d0385fa2f45c012e44b[m
+Merge: 182d2f5 1f65779
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sat Jul 8 17:37:41 2023 +0200
+
+    Merge branch 'develop'
+
+[33mcommit 182d2f5d615edaa7f37ec5632ce0260b3bd08348[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sat Jul 8 17:36:57 2023 +0200
+
+    README fixes
+
+[33mcommit 1f657796674ea554c250ba78f43a6ad5e381dbea[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sat Jul 8 17:36:57 2023 +0200
+
+    README fixes
+
+[33mcommit 0b01da21337967ef84bdf94cf307ee825fcf603e[m
+Author: Bernhard Kerbl <kerbl@icg.tugraz.at>
+Date:   Sat Jul 8 17:35:14 2023 +0200
+
+    Bumped viewers
+
+[33mcommit 2b86cdc3bc69747d0978479ad7076472ea0c4c8b[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sat Jul 8 15:41:19 2023 +0200
+
+    ReadME update
+
+[33mcommit 0b6884fca040c4fdc39d7279f6174b0c637339fa[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sat Jul 8 15:31:34 2023 +0200
+
+    Deleted old submodules
+
+[33mcommit 44bc3b95c1cf95899df4a3bbd16f31c3c2ee2ab6[m
+Merge: df2f39a 5bb7805
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sat Jul 8 15:24:58 2023 +0200
+
+    Merge branch 'main' into develop
+
+[33mcommit 5bb78057f8d90457506084179be1242da3c87540[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sat Jul 8 15:24:31 2023 +0200
+
+    Single viewers submodule, updated readme
+
+[33mcommit df2f39a34500f5b2f016cbf7cf4e8457ae517d07[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sat Jul 8 14:56:07 2023 +0200
+
+    update readme wip
+
+[33mcommit 3ceacbf8fbc98635d478a7d78a6c56aaedf42fff[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Fri Jul 7 18:38:15 2023 +0200
+
+    Bump viewers
+
+[33mcommit 433d34db1b24d17a07737cea8cccced77923d166[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Fri Jul 7 18:36:17 2023 +0200
+
+    Readme improvement
+
+[33mcommit 0327061ffd2928c84756140620112ac2d1677ca1[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Fri Jul 7 01:54:20 2023 +0200
+
+    Absolute path happens later
+
+[33mcommit 72d3ea64c90450e9aecb58b0dc455424c996249b[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 6 19:42:28 2023 +0200
+
+    Readme update
+
+[33mcommit dccf926887f6233fc3be87b76f100c8b73897c18[m
+Author: Bernhard Kerbl <kerbl@icg.tugraz.at>
+Date:   Thu Jul 6 19:41:16 2023 +0200
+
+    Bump viewer
+
+[33mcommit 405bb4a9acefaf067040def46647f18e4bc5c797[m
+Merge: 27e21cf a446dac
+Author: Bernhard Kerbl <kerbl@icg.tugraz.at>
+Date:   Thu Jul 6 19:40:42 2023 +0200
+
+    Merge branch 'main' of https://gitlab.inria.fr/bkerbl/gaussian-splatting
+
+[33mcommit 27e21cfd2d4ee64129783cec5161fdd26db59edc[m
+Author: Bernhard Kerbl <kerbl@icg.tugraz.at>
+Date:   Thu Jul 6 19:40:34 2023 +0200
+
+    Bump viewer
+
+[33mcommit a446daca6ad022da7013a118a08ad4e70367e9ff[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 6 18:46:58 2023 +0200
+
+    Minor fixes
+
+[33mcommit 2ac7539c7f7eb8fb00cd635c43db2263a643fc61[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 6 18:35:20 2023 +0200
+
+    Bump linux viewer
+
+[33mcommit 8510a81099c221f1cbb38b5866e6a5255e93e670[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 6 17:55:46 2023 +0200
+
+    Updated readme
+
+[33mcommit f360e621dc087403cf0bbacb213fd77fc84abe8f[m
+Author: Bernhard Kerbl <kerbl@icg.tugraz.at>
+Date:   Thu Jul 6 17:46:45 2023 +0200
+
+    Bump viewer
+
+[33mcommit 4268e86b79717132d9abe0fe8e7019bdb69c2d1b[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 6 16:59:35 2023 +0200
+
+    Use absolute paths, update readme
+
+[33mcommit 433d6755755b91226616c51e6462bc0478be4406[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 6 14:49:06 2023 +0200
+
+    Bumped imgui fix
+
+[33mcommit 5035670164bc5263f07a44943d04991948e8a125[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 6 13:08:49 2023 +0200
+
+    Expanded doc, added binaries
+
+[33mcommit 2fedfba8c7f9f559ac03cbc11358c2cc7d631ac1[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 6 01:49:18 2023 +0200
+
+    Update readme, eval
+
+[33mcommit 940e16317ab7bdd84413ec4a6c51c76f23001886[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 5 18:26:29 2023 +0200
+
+    Bumped viewers
+
+[33mcommit 8cf59b7a38063d73ed40f9fde86ff4e09fa758de[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 5 17:59:50 2023 +0200
+
+    Updated readme
+
+[33mcommit 73a24091119efa593dd9b9276b7f7602ddfd7715[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 5 17:53:42 2023 +0200
+
+    Bumped viewer versions
+
+[33mcommit c94858382e905938b923abb96589caaf172df149[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 5 17:16:53 2023 +0200
+
+    Version bump
+
+[33mcommit eeeef87355efc7c63448059370d5272ff0fdce68[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 5 17:12:22 2023 +0200
+
+    Bumped SIBR linux version
+
+[33mcommit 0166108c125cb24d549ff26c99fc5fe6eb779684[m
+Merge: ad8f3a1 eb2c566
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 5 16:46:00 2023 +0200
+
+    Merge branch 'main' into develop
+
+[33mcommit eb2c566e15ae0c2171cd1073d1b9a2eb2ccbee9d[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 5 16:25:29 2023 +0200
+
+    Bumped sibr
+
+[33mcommit 846aad016813e7e52c67967647407a26b5e5c207[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 5 16:00:25 2023 +0200
+
+    Fixed one more heading
+
+[33mcommit a5d1dc8b83bc3d3c47635720ffbb2b6a4ec5477f[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 5 15:58:51 2023 +0200
+
+    Smaller headings
+
+[33mcommit 3323b7962471b5e663a4581da242455698d884f8[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 5 15:49:13 2023 +0200
+
+    bold summary
+
+[33mcommit ad8f3a12777fb935f8411d3db8b97004d1159e34[m
+Merge: a26a629 17d0a6c
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 5 15:42:53 2023 +0200
+
+    Merge branch 'main' into develop
+
+[33mcommit 17d0a6cba2c2c692fa99aa7ad2600e557a1393f5[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 5 15:42:08 2023 +0200
+
+    Added flag description to readme
+
+[33mcommit a26a62966d3d2a6e370fab06990e4699ce12597c[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 5 15:42:08 2023 +0200
+
+    Added flag description to readme
+
+[33mcommit 26942586b1c90a72ed13245089350004dbadc937[m
+Author: Bernhard Kerbl <kerbl@icg.tugraz.at>
+Date:   Wed Jul 5 12:22:16 2023 +0200
+
+    Added licenses, bumped submodule versions
+
+[33mcommit 45a9877ac4353dac3856e68d4c5768303b06d975[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 5 11:56:17 2023 +0200
+
+    Nice fixed output
+
+[33mcommit 43e42bd20fd6a2b2474ec35043cef1b3600c1bdc[m
+Author: Bernhard Kerbl <kerbl@icg.tugraz.at>
+Date:   Wed Jul 5 02:22:01 2023 +0200
+
+    Bump sibr viewer
+
+[33mcommit dee314f55c1fa98a404fbb0a6d293426a728b1cd[m
+Author: Bernhard Kerbl <kerbl@icg.tugraz.at>
+Date:   Tue Jul 4 23:53:02 2023 +0200
+
+    updated readme
+
+[33mcommit 221a53b5fe5791474a769f1955d0c07b580c722d[m
+Author: DRETTAKIS George <george.drettakis@inria.fr>
+Date:   Tue Jul 4 19:57:29 2023 +0000
+
+    Update LICENSE.md
+
+[33mcommit 9e00623a01d08d7767ff41815840352df37be1f3[m
+Author: George Drettakis <George.Drettakis@inria.fr>
+Date:   Tue Jul 4 21:56:15 2023 +0200
+
+    license
+
+[33mcommit d484e0f857e94120c08f4762cf85c0f453545f02[m
+Author: DRETTAKIS George <george.drettakis@inria.fr>
+Date:   Tue Jul 4 19:55:10 2023 +0000
+
+    Update LICENSE
+
+[33mcommit 4e8ceb56320fb66b94eae644d80b367d5248e277[m
+Author: DRETTAKIS George <george.drettakis@inria.fr>
+Date:   Tue Jul 4 19:52:22 2023 +0000
+
+    Add LICENSE
+
+[33mcommit eddd3722b7c4896ff578bca96522848a1eb49b7e[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Jul 4 19:32:03 2023 +0200
+
+    param fix (thanks Alban)
+
+[33mcommit 056115308dd41122834212bc3ab79a45f213844f[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Jul 4 19:01:30 2023 +0200
+
+    link fix:
+
+[33mcommit 1746f0fdbe8045a9a2c1d42760abba402d26191d[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Jul 4 17:48:37 2023 +0200
+
+    Added dataset paths
+
+[33mcommit 2850f2b2352ff1bf048f227d96da7dec3deb0cdc[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Jul 4 16:05:15 2023 +0200
+
+    Bump SIBR
+
+[33mcommit 25c9817c494cb2d177ff340a804ae15144f26400[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Jul 4 15:10:44 2023 +0200
+
+    Bumped SIBR, documentation, always save at end
+
+[33mcommit 398225441640a60be357cb97d142fbacb2af8ba1[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Jul 4 13:47:38 2023 +0200
+
+    Bumped rasterizer ref for SIBR
+
+[33mcommit 8f6463111ef5b355a11dbb68f6474b36b842d1fc[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Jul 4 11:31:42 2023 +0200
+
+    Finalized link
+
+[33mcommit 46c853bd717bf419f4204b6b3b82e9f8bfad780c[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Jul 4 11:04:42 2023 +0200
+
+    Small Readme fix
+
+[33mcommit 6887a84ac21c223130546ebe69d5b3738d31b7b0[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Jul 4 10:59:45 2023 +0200
+
+    Decluttered setup
+
+[33mcommit 5c3e784424fb877760a46e667efc01790f2d5b21[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Jul 4 10:28:59 2023 +0200
+
+    Submodule changed to public available
+
+[33mcommit 9fce783a3b8fbd9c83d65abfa51e317a23bc7386[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Jul 4 10:10:59 2023 +0200
+
+    Added submodules
+
+[33mcommit 15d64e67814605c4d5b24a326aad29da74898acc[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Jul 4 10:00:48 2023 +0200
+
+    Initial commit

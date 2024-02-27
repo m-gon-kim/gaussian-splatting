@@ -1,0 +1,556 @@
+[33mcommit 392e8a10c4ceb900ee95814a37d13d4f5573df90[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdataloader[m[33m, [m[1;32mmain[m[33m)[m
+Author: seohyun423@korea.edu <seohyun423@korea.ac.kr>
+Date:   Thu Feb 22 18:02:35 2024 +0900
+
+    change
+
+[33mcommit 6b351af0dba7f6edaafd03422575ba059c598f8a[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Mon Feb 19 17:11:26 2024 +0900
+
+    [LC] Loop closing
+     - hamming distance updated
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit 327c9c468319c5ed8fbc8666647843f33dd0741c[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Fri Feb 16 23:47:04 2024 +0900
+
+    [LC] Loop closed
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit fa0bfb0b60c38eb5c7bdbabe608c025722ac0eb6[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Fri Feb 16 02:17:04 2024 +0900
+
+    [M2F] Map to Frame approach
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit 54556d0de2e05e47ab92070b40e6154e35472da8[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Thu Feb 8 00:46:56 2024 +0900
+
+    [WIP] Before, pointclouds pointer
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit 7ce05425edb88232d70edffc24d210869a9b06a3[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Fri Jan 19 05:04:29 2024 +0900
+
+    [Improvement] Speed and Memory usage improved
+     - mapping
+     - g-mapping
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit f8313f795d0371166105c6e45232843e900e41e3[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Thu Jan 18 00:15:06 2024 +0900
+
+    [Bug Fix] Working code for GS slam
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit a22a9604b97dd87add7eaa28b08c5830c3680f89[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Fri Jan 5 21:12:31 2024 +0900
+
+    BA proto code
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit a99bd84907b281732de2e8ac90ce08da3e5b23d7[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Tue Jan 2 05:01:38 2024 +0900
+
+    [Proto] proto type without BA
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit dd5aa29d5b260198f48ff9b1bd92ebbf704fff2e[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Thu Dec 28 22:15:17 2023 +0900
+
+    Split 3 processes
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit 4246b1e7d315fcb318489d9e241641c1908c6740[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Thu Dec 28 13:05:10 2023 +0900
+
+    Skeleton Code
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit 756a95d87b95b4442166c56e366a71d28c6df868[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Wed Dec 27 15:04:29 2023 +0900
+
+    Gaussian renderer test code
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit 7c35e9a9de883a2286b7382bb70db447c688ec32[m
+Author: m-gon-kim <m_gon_kim@korea.ac.kr>
+Date:   Wed Dec 13 16:57:23 2023 +0900
+
+    [Init] Initially modified originall code
+    
+    Signed-off-by: m-gon-kim <m_gon_kim@korea.ac.kr>
+
+[33mcommit 2eee0e26d2d5fd00ec462df47752223952f6bf4e[m
+Author: Bernhard Kerbl <kerbl@icg.tugraz.at>
+Date:   Wed Nov 1 13:10:29 2023 +0100
+
+    Bumped sibr viewers
+
+[33mcommit f11001b46c5c73a0a7d553353c898efd68412abe[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Mon Oct 23 16:02:30 2023 +0200
+
+    Random background flag added
+
+[33mcommit 414b553ef1d3032ea634b7b7a1d121173f36592c[m
+Merge: 3535406 fecb233
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Sun Sep 24 17:23:00 2023 +0200
+
+    Merge pull request #203 from Khoa-NT/patch-1
+    
+    Fix typo in README.md
+
+[33mcommit 35354068d7d96c59e1a514a8fe250c38c6d410f3[m
+Merge: ea68bdf 2de5997
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Sun Sep 24 17:21:36 2023 +0200
+
+    Merge pull request #236 from eltociear/patch-1
+    
+    Fix typo in README.md
+
+[33mcommit 2de59977324619ec0dd203cca0c5c823aec871d5[m
+Author: Ikko Eltociear Ashimine <eltociear@gmail.com>
+Date:   Mon Sep 25 00:14:49 2023 +0900
+
+    Fix typo in README.md
+    
+    intial -> initial
+
+[33mcommit fecb2331ca76734cb341b183948c3b2e24bf2575[m
+Author: Khoa Nguyen-Tuan <12138158+Khoa-NT@users.noreply.github.com>
+Date:   Sat Sep 16 09:17:33 2023 +0900
+
+    Fix typo in README.md
+    
+    Typo "--densification_interal" in "Command Line Arguments for train.py"
+
+[33mcommit ea68bdf29c3b11d1a7ec2e5a11b1af2c266bd7f2[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Sep 5 19:30:53 2023 +0200
+
+    Bump rasterizer, faster text loading
+
+[33mcommit b2ada78a779ba0455dfdc2b718bdf1726b05a1b6[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Wed Aug 30 13:27:54 2023 +0200
+
+    Update README.md
+
+[33mcommit 47800f5a0e0ec85a8480474416d40f4eed73435e[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Wed Aug 30 13:26:54 2023 +0200
+
+    Update README.md
+
+[33mcommit 353b2e9748e1fab456d78bd31962da0118c23746[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Wed Aug 30 12:15:13 2023 +0200
+
+    Update README.md
+
+[33mcommit 87d4f5b9d49607767ca6a16a3be9026cfca9116c[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Wed Aug 30 03:12:49 2023 +0200
+
+    Update README.md
+
+[33mcommit 28614d0855d92236de377a5f3901f0de31ce75eb[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Wed Aug 30 03:10:25 2023 +0200
+
+    Update README.md
+
+[33mcommit 36f0687591d481b503c0a78c08eb40f2ff9e7353[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Wed Aug 30 03:09:40 2023 +0200
+
+    Update README.md
+
+[33mcommit 8189cd8d5d8e9654e5b501057237cfe58d8b85ca[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Tue Aug 29 14:59:19 2023 +0200
+
+    Update README.md
+
+[33mcommit f4b32a039c9143dfcb57503410fde986d6c636f3[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Tue Aug 29 14:19:19 2023 +0200
+
+    Update README.md
+
+[33mcommit 436ca311258bc7be9da34c2cbd0f4fcfb871d6c8[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Tue Aug 29 14:17:54 2023 +0200
+
+    Update README.md
+
+[33mcommit 9d977c702bc8819bfec26992f541dc6162074267[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Mon Aug 28 16:32:00 2023 +0200
+
+    Update README.md
+
+[33mcommit edbaa4158fb0fd3d0e66f780e90459b118b2ecdd[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Mon Aug 28 16:31:21 2023 +0200
+
+    Update README.md
+
+[33mcommit bb8e1a98bd4e908402e621aa8bd12f967e227ecf[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Mon Aug 28 16:28:45 2023 +0200
+
+    Update README.md
+
+[33mcommit 0b3519bca56e0ab38f85d5aa15d8aae7f526a4fe[m
+Merge: 0f125cb 87e829c
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 23:28:06 2023 +0200
+
+    Merge pull request #122 from szymanowiczs/main
+    
+    Update .gitmodules to include .git for SIBR_viewers
+
+[33mcommit 87e829c002b2e0df563f8a87f84471bad732910a[m
+Author: Stan Szymanowicz <szymanowiczs@gmail.com>
+Date:   Thu Aug 24 22:00:57 2023 +0100
+
+    Update .gitmodules to include .git for SIBR_viewers
+
+[33mcommit 0f125cbd5f21f2968c8012b480e28ca016927ef7[m
+Author: Jakub Červený <jakub.cerveny@gmail.com>
+Date:   Thu Aug 24 17:38:48 2023 +0200
+
+    Fix conversion from Blender to COLMAP coords in NeRF camera import. (#111)
+    
+    Co-authored-by: Jakub Červený <jakub.cerveny@melowntech.com>
+
+[33mcommit 073775efbde8c76bbe86e601d07cad96877957ad[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:24:25 2023 +0200
+
+    Update README.md
+
+[33mcommit da3bee9bce555ad114bff4c0bede5266ad485fe2[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:24:16 2023 +0200
+
+    Update README.md
+
+[33mcommit 746d1d46259b8811e4e69ecc7c0f0a633d30a2f9[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:24:06 2023 +0200
+
+    Update README.md
+
+[33mcommit c93907cf0a987af5d6c4664458e255de0f60f6ba[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:23:53 2023 +0200
+
+    Update README.md
+
+[33mcommit 483cbb1a5bce95ed49ffb252d01bb6d0b683ee0f[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:23:05 2023 +0200
+
+    Update README.md
+
+[33mcommit 0609a3e933bcbd4c6f0581479e9770065c2386ee[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:21:42 2023 +0200
+
+    Update README.md
+
+[33mcommit 30c28aefb10e770484b51110370772cda2384d45[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:21:11 2023 +0200
+
+    Update README.md
+
+[33mcommit c6c7fe89247a17f013e9b36c04f06aecdabb03e0[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:20:43 2023 +0200
+
+    Update README.md
+
+[33mcommit ba70312818bd14a880788948b915de2cfaebd96d[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:20:17 2023 +0200
+
+    Update README.md
+
+[33mcommit e5bbf7ff49306754f93d85430afc7a1b37e5eded[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:19:38 2023 +0200
+
+    Update README.md
+
+[33mcommit deef616a31ddb7c741fa46263ba55cf3f8179ec5[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:18:59 2023 +0200
+
+    Update README.md
+
+[33mcommit 95cb14d2b25113b4c1d1b3b5869906ce42bd4b9b[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:10:31 2023 +0200
+
+    Update README.md
+
+[33mcommit f7cfc0f87716bfca94fa78241ca3f9e7ee0dd29e[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:09:53 2023 +0200
+
+    Update README.md
+
+[33mcommit 29fdaa3402a44264dc575f46e23a4d11bd993f22[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 24 11:07:36 2023 +0200
+
+    Update README.md
+
+[33mcommit f7a116fb1397d9842239127d39dc212f93171f70[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Mon Aug 14 10:25:42 2023 +0200
+
+    Update README.md
+
+[33mcommit b4daa132b920b02614c020104e44246a09a82c25[m
+Merge: ba43a8c 4ce38f5
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Sun Aug 13 20:06:28 2023 +0200
+
+    Merge pull request #88 from eltociear/main-1
+    
+    Fix typo in README.md
+
+[33mcommit 4ce38f5b24f1cff62036afa43722df7b91bd0d47[m
+Author: Ikko Eltociear Ashimine <eltociear@gmail.com>
+Date:   Mon Aug 14 02:57:08 2023 +0900
+
+    Fix typo in README.md
+    
+    iewers -> viewers
+
+[33mcommit ba43a8c68a4987b96e1ef9393760ba6cf948ab35[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Aug 3 10:47:42 2023 +0200
+
+    Update README.md
+
+[33mcommit c586713d02b85020756f2f299bdde5e34cedd7fd[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Aug 1 15:16:18 2023 +0200
+
+    Bump viewer version
+
+[33mcommit fc7432d8b6abb258933c6cd6eef9bd8942b7e295[m
+Author: JonathonLuiten <jonoluiten@gmail.com>
+Date:   Tue Aug 1 01:06:33 2023 -0400
+
+    Typo in gaussian_renderer.__init__.py (#68)
+    
+    fixed a typo
+
+[33mcommit a63d0bdd261550d5c02c8b1863e97de705b1ad02[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Jul 27 18:23:18 2023 +0200
+
+    Update README.md
+
+[33mcommit ad6f40735eecaa74904ed9667ba376b820acc805[m
+Merge: 666a5ee 8c75a90
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Thu Jul 27 11:04:35 2023 +0200
+
+    Merge pull request #62 from HrsPythonix/improve-robustness-ply-loading
+    
+    Add sort to ensure right order of properties read from ply file
+
+[33mcommit 8c75a90f56f14f3af619d4061525dfdb3182ae64[m
+Author: Pythonix Huang <370048201@qq.com>
+Date:   Thu Jul 27 16:49:45 2023 +0800
+
+    Add sort to ensure right order of properties read from ply file
+
+[33mcommit 666a5ee203daaed5aad8b5ebe90a7250cb136322[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Wed Jul 26 10:24:56 2023 +0200
+
+    Reestablished control over pipeline from remote
+
+[33mcommit add0ada0e47493cda91f743019f99e39bdeb0657[m
+Author: Bernhard Kerbl <kerbl@icg.tugraz.at>
+Date:   Tue Jul 25 19:33:40 2023 +0200
+
+    Bumped viewers
+
+[33mcommit 8742c98b9f52d95b1f3b22aa5301b26804bd8d27[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Tue Jul 25 11:20:30 2023 +0200
+
+    Bumped viewer
+
+[33mcommit 39f54b758c440346fcea6df1d015b1eab6fd08cf[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 23 22:50:37 2023 +0200
+
+    Debug flags documented
+
+[33mcommit 91f16deb45542072306439be1239a4fc2dee9422[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 23 22:41:32 2023 +0200
+
+    Debugging behavior
+
+[33mcommit d4fa4779d52cd7d79787cecd62b398cec348ee5e[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 23 12:48:17 2023 +0200
+
+    Debugging functionality
+
+[33mcommit 4ab80a22157d8ba8388c66222c074c4d37e10d8c[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 20 20:17:52 2023 +0200
+
+    Bumped SIBR
+
+[33mcommit 75c7c767054de83ebcc06c417e71695a66735d5b[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 20 16:16:34 2023 +0200
+
+    Bumped SIBR
+
+[33mcommit 49afb8edb3282b8bd2d8e1a32c00f60832419ae9[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 20 00:50:35 2023 +0200
+
+    Restored diff rasterizer version
+
+[33mcommit 9f6e55e66606fb7c3e490b5a7f4cc02970cefb72[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Thu Jul 20 00:45:24 2023 +0200
+
+    Bumped SIBR viewers
+
+[33mcommit e56220315bd0dfc3eb5c0f0db8137504697bf523[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 16 17:38:12 2023 +0200
+
+    Bumped SIBR
+
+[33mcommit cb5fb83b39c238312267cb33b8442e5c612712dc[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Sun Jul 16 16:41:17 2023 +0200
+
+    Update README.md
+
+[33mcommit 7ce1b2d5ad25e224d15440f3cbbebabbdab8d5e2[m
+Author: Snosixtyboo <40643808+Snosixtyboo@users.noreply.github.com>
+Date:   Sun Jul 16 16:40:18 2023 +0200
+
+    Update README.md
+
+[33mcommit e20ad9bb349b24674a23890e7d1876a92af0b443[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 16 16:31:19 2023 +0200
+
+    Layout
+
+[33mcommit ade20c1211a646231a6d4211df06e299c6ab9252[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 16 16:30:18 2023 +0200
+
+    Replaced markdown with proper html because it doesn't work otherwise :)
+
+[33mcommit 3ae1bdafb9a16b006af63ac3349da687e560f412[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 16 16:28:31 2023 +0200
+
+    Added LR example
+
+[33mcommit 5f257e6a41ae1102a2eba764864923c5dc26d4eb[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 16 16:26:13 2023 +0200
+
+    Added LR example
+
+[33mcommit 724538462696263a3bc82ad8f0f1d93305567616[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 16 16:17:16 2023 +0200
+
+    Replaced markdown with proper html because it doesn't work otherwise :)
+
+[33mcommit aff5dd624bceb815727ef7cd594bb220957090be[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 16 16:00:57 2023 +0200
+
+    Replaced markdown with proper html because it doesn't work otherwise :)
+
+[33mcommit 098fdbdb17c993bee5fccd172a158f8f4e3feeb1[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 16 15:49:06 2023 +0200
+
+    Added LR example
+
+[33mcommit 6891d458f9e656fde549f57da28d26c4c10ff073[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sun Jul 16 11:48:04 2023 +0200
+
+    Scaling LR fixed
+
+[33mcommit ab6d668c51ac6defade2d9c82b92b17cf587413b[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Sat Jul 15 11:12:25 2023 +0200
+
+    Rolling back fixed spatial lr
+
+[33mcommit 5c04e3574315ff9f4df1a8d5d34795bb90d7b986[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Fri Jul 14 21:34:59 2023 +0200
+
+    Update readme
+
+[33mcommit 6b54263364f759d4c64da4982e64bd00b4bd239c[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Fri Jul 14 21:09:46 2023 +0200
+
+    Added checkpoints
+
+[33mcommit ef918fc9e3be0ce7879df921d3d91b86dc865f25[m
+Merge: 737f754 e46b495
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Fri Jul 14 21:24:32 2023 +0200
+
+    conflict resolved
+
+[33mcommit 737f75406999ff1bc2196bd107bc89caf09afe88[m
+Author: bkerbl <bkerbl@ad.inria.fr>
+Date:   Fri Jul 14 16:18:22 2023 +0200
+
+    Pushed diff-rasterizer
