@@ -31,8 +31,9 @@ class GaussianMapper:
         self.Flag_GS_Pause = False
 
         self.Flag_GS_Pause = False
-        print("gs", parameters)
         self.SetIntrinsics(dataset)
+        self.insertion_densification_interval = parameters["insertion"]["densification_interval"]
+        self.full_optimization_densification_interval = parameters["full_optimization"]["densification_interval"]
 
         self.SetSPMaskPoints()
         self.full_proj_transform_list = []
@@ -55,7 +56,7 @@ class GaussianMapper:
         self.SP_global_3d_list = []
 
         # Super pixel
-        self.sp_manager = SuperPixelManager(self.width, self.height)
+        self.sp_manager = SuperPixelManager(self.width, self.height, parameters["superpixel_creation"])
         # Gaussians
         self.gaussian = GaussianModel(3, self.device)
         with torch.no_grad():
@@ -198,39 +199,39 @@ class GaussianMapper:
         self.viz_camera_center_list.append(camera_center.detach())
 
         #
-        # with torch.no_grad():
-        #     pose2 = torch.eye(4, dtype=torch.float32, device=self.device)
-        #     pose2[2, 3] = 4.8
-        #     pose2[1, 3] = -3.6
-        #
-        #     pose2[0, 0] = -1
-        #     pose2[1, 1] = 0.5
-        #     pose2[1, 2] = 0.866
-        #     pose2[2, 1] = 0.866
-        #     pose2[2, 2] = -0.5
-        #
-        #
-        #     camera_center2 = pose2.T[3, :3].detach()
-        #     world_view_transform2 = torch.inverse(pose2).T.detach()
-        #     full_proj_transform2 = torch.matmul(world_view_transform2, self.projection_matrix)
-        #     # self.viz_full_proj_transform_list.append((world_view_transform2.detach().cpu().unsqueeze(0).bmm(
-        #     #     (self.projection_matrix).detach().cpu().unsqueeze(0))).squeeze(0).type(torch.FloatTensor).to(
-        #     #     self.device))
-        # self.viz_full_proj_transform_list.append(full_proj_transform2.detach())
-        # self.viz_world_view_transform_list.append(world_view_transform2.detach())
-        # self.viz_camera_center_list.append(camera_center2.detach())
-        #
-        # with torch.no_grad():
-        #     pose = torch.eye(4, dtype=torch.float32, device=self.device)
-        #     pose[2, 3] = -5
-        #     pose[1, 3] = -0.5
-        #     camera_center = pose.T[3, :3].detach()
-        #     world_view_transform = torch.inverse(pose).T.detach()
-        # self.viz_full_proj_transform_list.append((world_view_transform.detach().cpu().unsqueeze(0).bmm(
-        #     (self.projection_matrix).detach().cpu().unsqueeze(0))).squeeze(0).type(torch.FloatTensor).to(
-        #     self.device))
-        # self.viz_world_view_transform_list.append(world_view_transform.detach())
-        # self.viz_camera_center_list.append(camera_center.detach())
+        with torch.no_grad():
+            pose2 = torch.eye(4, dtype=torch.float32, device=self.device)
+            pose2[2, 3] = 4.8
+            pose2[1, 3] = -3.6
+
+            pose2[0, 0] = -1
+            pose2[1, 1] = 0.5
+            pose2[1, 2] = 0.866
+            pose2[2, 1] = 0.866
+            pose2[2, 2] = -0.5
+
+
+            camera_center2 = pose2.T[3, :3].detach()
+            world_view_transform2 = torch.inverse(pose2).T.detach()
+            full_proj_transform2 = torch.matmul(world_view_transform2, self.projection_matrix)
+            # self.viz_full_proj_transform_list.append((world_view_transform2.detach().cpu().unsqueeze(0).bmm(
+            #     (self.projection_matrix).detach().cpu().unsqueeze(0))).squeeze(0).type(torch.FloatTensor).to(
+            #     self.device))
+        self.viz_full_proj_transform_list.append(full_proj_transform2.detach())
+        self.viz_world_view_transform_list.append(world_view_transform2.detach())
+        self.viz_camera_center_list.append(camera_center2.detach())
+
+        with torch.no_grad():
+            pose = torch.eye(4, dtype=torch.float32, device=self.device)
+            pose[2, 3] = -5
+            pose[1, 3] = -0.5
+            camera_center = pose.T[3, :3].detach()
+            world_view_transform = torch.inverse(pose).T.detach()
+        self.viz_full_proj_transform_list.append((world_view_transform.detach().cpu().unsqueeze(0).bmm(
+            (self.projection_matrix).detach().cpu().unsqueeze(0))).squeeze(0).type(torch.FloatTensor).to(
+            self.device))
+        self.viz_world_view_transform_list.append(world_view_transform.detach())
+        self.viz_camera_center_list.append(camera_center.detach())
 
         with torch.no_grad():
             pose2 = torch.eye(4, dtype=torch.float32, device=self.device)
@@ -518,7 +519,8 @@ class GaussianMapper:
                                                                      radii[visibility_filter])
             self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
 
-            if index%2 == 0 and index > 0 and optimization_i == optimization_i_threshold-1 :
+            if index%(self.insertion_densification_interval) == 0 and index > 0 \
+                    and optimization_i == optimization_i_threshold-1 :
                 print(f"PRUNE {self.iteration} {self.densification_interval}")
                 self.densification_interval = 0
                 self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
@@ -562,7 +564,8 @@ class GaussianMapper:
                                                                          radii[visibility_filter])
                 self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
 
-                if Flag_densification and i%4 == 0 and optimization_i == int(optimization_i_threshold/2):
+                if Flag_densification and i%(self.full_optimization_densification_interval) == 0 and\
+                        optimization_i == int(optimization_i_threshold/2):
                     self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
                                                     self.size_threshold)
 
@@ -645,7 +648,7 @@ class GaussianMapper:
                 cv2.imshow(f"start_gs{i}", np_render)
 
             # Render from keyframes
-            for i in range(0, self.SP_poses.shape[2], 3):
+            for i in range(0, self.SP_poses.shape[2], 2):
                 viz_world_view_transform = self.world_view_transform_list[i]
                 viz_full_proj_transform = self.full_proj_transform_list[i]
                 viz_camera_center = self.camera_center_list[i]
@@ -654,7 +657,7 @@ class GaussianMapper:
                                        viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
                 img = render_pkg["render"]
                 np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
-                cv2.imshow(f"rendered{int(i*10 / 3)}", np_render)
+                cv2.imshow(f"rendered{int(i*10 / 2)}", np_render)
 
             # Render all frames with predicted camera poses
             frame = self.SP_poses.shape[2]-1

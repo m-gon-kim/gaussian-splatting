@@ -14,7 +14,6 @@ class TrackerTorch:
         self.xy_one = None
         self.orb = None
         self.projection_matrix = None
-        self.SetORBSettings()
         self.Initial = True
         self.KF_rgb = None
         self.KF_gray = None
@@ -27,8 +26,12 @@ class TrackerTorch:
             self.inv_intr = torch.zeros((3, 3), dtype=torch.float32, device=self.device)
             self.SetIntrinsics(dataset)
         self.GenerateUVTensor()
-        print("tracker", parameters)
-
+        self.orb_nfeatures = parameters["orb_nfeatures"]
+        self.depth_crop_near = parameters["depth_crop"]["near"]
+        self.depth_crop_far = parameters["depth_crop"]["far"]
+        self.kf_selection_angle = parameters["kf_selection"]["angle"]
+        self.kf_selection_shift = parameters["kf_selection"]["shift"]
+        self.SetORBSettings()
 
     def SetIntrinsics(self, dataset):
         fx, fy, cx, cy = dataset.get_camera_intrinsic()
@@ -78,7 +81,7 @@ class TrackerTorch:
 
     def SetORBSettings(self):
         self.orb=cv2.cuda_ORB.create(
-            nfeatures=1000,
+            nfeatures=self.orb_nfeatures,
             scaleFactor=1.2,
             nlevels=8,
             edgeThreshold=31,
@@ -210,11 +213,11 @@ class TrackerTorch:
             pnp_query_2d_list = np.copy(query_2d_list)
 
             # Crop near points (for PNP Solver)
-            z_mask_1 = pnp_ref_3d_list[:, 2] > 0.01
+            z_mask_1 = pnp_ref_3d_list[:, 2] > self.depth_crop_near
             pnp_ref_3d_list = pnp_ref_3d_list[z_mask_1]
             pnp_query_2d_list = pnp_query_2d_list[z_mask_1]
             # Crop far points (for PNP Solver)
-            z_mask_2 = pnp_ref_3d_list[:, 2] <= 5.0
+            z_mask_2 = pnp_ref_3d_list[:, 2] <= self.depth_crop_far
             pnp_ref_3d_list = pnp_ref_3d_list[z_mask_2]
             pnp_query_2d_list = pnp_query_2d_list[z_mask_2]
 
@@ -235,8 +238,7 @@ class TrackerTorch:
                 val = -1.0
             angle = math.acos((val - 1) * 0.5)
 
-            # print(f"angle: {angle}, shift: {shift}")
-            if 0.3 <= angle or 0.3 <= shift :  # Mapping is required
+            if self.kf_selection_angle <= angle or self.kf_selection_shift <= shift:  # Mapping is required
                 # print(f"Make KF! angle: {angle}, shift: {shift}")
                 self.CreateKeyframe(rgb, depth, (current_kp, current_des))
                 relative_pose = [rot, quat, tvec]

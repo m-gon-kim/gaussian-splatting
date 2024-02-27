@@ -22,7 +22,31 @@ class MTFMapper:
             self.GKF_index_list = torch.empty((0), dtype=torch.int32, device=self.device)
             self.frustum_center = torch.zeros((4,1), dtype=torch.float32, device=self.device)
             self.frustum_radius = 1.6
-        print("mtf", parameters)
+
+
+        self.orb_nfeatures = parameters["orb_nfeatures"]
+
+        self.project_map_to_frame_near = parameters["xyz_crop"]["project_map_to_frame"]["near"]
+        self.project_map_to_frame_far = parameters["xyz_crop"]["project_map_to_frame"]["far"]
+        self.project_map_to_frame_padding = parameters["xyz_crop"]["project_map_to_frame"]["padding"]
+        self.project_map_to_frame_distance = parameters["xyz_crop"]["project_map_to_frame"]["distance"]
+        self.project_map_to_frame_diff = parameters["xyz_crop"]["project_map_to_frame"]["diff"]
+
+        self.project_map_to_frame_loop_near = parameters["xyz_crop"]["project_map_to_frame_loop"]["near"]
+        self.project_map_to_frame_loop_far = parameters["xyz_crop"]["project_map_to_frame_loop"]["far"]
+        self.project_map_to_frame_loop_padding = parameters["xyz_crop"]["project_map_to_frame_loop"]["padding"]
+        self.project_map_to_frame_loop_distance = parameters["xyz_crop"]["project_map_to_frame_loop"]["distance"]
+        self.project_map_to_frame_loop_diff = parameters["xyz_crop"]["project_map_to_frame_loop"]["diff"]
+
+        self.superpixel_kf_selection_angle = parameters["superpixel_kf_selection"]["angle"]
+        self.superpixel_kf_selection_shift = parameters["superpixel_kf_selection"]["shift"]
+
+        self.loop_closing_pose_threshold_angle = parameters["loop_closing_pose_threshold"]["angle"]
+        self.loop_closing_pose_threshold_shift = parameters["loop_closing_pose_threshold"]["shift"]
+
+        self.loop_ba_iteration = parameters["loop_ba"]["iteration"]
+        self.loop_ba_point_lr = parameters["loop_ba"]["point_lr"]
+        self.loop_ba_pose_lr = parameters["loop_ba"]["pose_lr"]
 
         self.SetIntrinsics(dataset)
         # from images
@@ -143,7 +167,7 @@ class MTFMapper:
         # 5. Match가 안된 Cam Keypoint는 pointcloud로 만든다. 생성한 pointcloud는 2d ORB와 인덱싱한다.
         # 6. 1000개의 ORB는 corresponding하는 3d pointcloud가 항상 있다. 추후 BA에 사용한다.
 
-        boundary_padding = 200  # pixel
+        boundary_padding = self.project_map_to_frame_padding  # pixel
 
         # 1. PointCloud를 camera space로 변경한다.
         global_xyz = self.pointclouds[:3, :].detach()
@@ -158,12 +182,12 @@ class MTFMapper:
         # 1번 과정 완료
 
         # 2. Far/Near를 crop
-        far_mask = projected_xyz[2, :] <= 5.0
+        far_mask = projected_xyz[2, :] <= self.project_map_to_frame_far
         projected_xyz = projected_xyz[:, far_mask]
         pc_desc = self.pointclouds_desc.detach()[far_mask, :]
         index_3D = index_3D[far_mask]
 
-        near_mask = projected_xyz[2, :] > 0.01
+        near_mask = projected_xyz[2, :] > self.project_map_to_frame_near
         projected_xyz = projected_xyz[:, near_mask]
         pc_desc = pc_desc[near_mask, :]
         index_3D = index_3D[near_mask]
@@ -218,7 +242,7 @@ class MTFMapper:
         cntr = 0
         for match_set in matches:
             match_set = sorted(match_set, key=lambda x: x.distance)
-            if match_set[0].distance >= 50:
+            if match_set[0].distance >= self.project_map_to_frame_distance:
                 break
             else:
                 match_cntr+=1
@@ -226,7 +250,7 @@ class MTFMapper:
                 if pair.distance < 50:
                     diff = projected_uv_zero_mask[:, pair.trainIdx] - torch.tensor([cam_kp[pair.queryIdx].pt],
                                                                                    dtype=torch.float32, device=self.device)
-                    if torch.norm(diff) < 200.0:
+                    if torch.norm(diff) < self.project_map_to_frame_diff:
                         # pixel 좌표계 오차가 적을 때만 True (50px 이내)
                         cam_kp_mask[pair.queryIdx] = True  # matching된 uv를 지칭, 1000개다.
                         pc_ptr_index = int(index_3D[pair.trainIdx].detach().cpu())  # pointcloud_idx
@@ -627,7 +651,7 @@ class MTFMapper:
 
             shift_matrix = self.GKF_pose[:3, 3] - pose[:3, 3]
             shift = torch.dot(shift_matrix, shift_matrix)
-        if(angle > 0.5 or shift > 0.5):
+        if(angle > self.superpixel_kf_selection_angle or shift > self.superpixel_kf_selection_shift):
             return True
         else:
             return False
@@ -828,8 +852,8 @@ class MTFMapper:
 
 
         #Optimizer params
-        pointclouds_lr = 0.1 ** point_rate
-        poses_lr = 0.1 ** pose_rate
+        pointclouds_lr = point_rate
+        poses_lr = pose_rate
         l = [
             {'params': [pointclouds_param], 'lr': pointclouds_lr, "name": "pointclouds"},
             {'params': [poses_param], 'lr': poses_lr, "name": "poses"}
@@ -1080,7 +1104,7 @@ class MTFMapper:
         orb = self.KF_orb_list[idx]
         xyz = self.KF_xyz_list[idx]
 
-        boundary_padding = 50  # pixel
+        boundary_padding = self.project_map_to_frame_loop_padding  # pixel
 
         # 1. PointCloud를 camera space로 변경한다.
         global_xyz = self.pointclouds[:3, :].detach()
@@ -1093,12 +1117,12 @@ class MTFMapper:
         # 1번 과정 완료
 
         # 2. Far/Near를 crop
-        far_mask = projected_xyz[2, :] <= 5.0
+        far_mask = projected_xyz[2, :] <= self.project_map_to_frame_loop_far
         projected_xyz = projected_xyz[:, far_mask]
         pc_desc = self.pointclouds_desc.detach()[far_mask, :]
         index_3D = index_3D[far_mask]
 
-        near_mask = projected_xyz[2, :] > 0.01
+        near_mask = projected_xyz[2, :] > self.project_map_to_frame_loop_near
         projected_xyz = projected_xyz[:, near_mask]
         pc_desc = pc_desc[near_mask, :]
         index_3D = index_3D[near_mask]
@@ -1158,10 +1182,10 @@ class MTFMapper:
             else:
                 match_cntr+=1
             for pair in match_set:
-                if pair.distance < 50: # 관대하게 감
+                if pair.distance < self.project_map_to_frame_loop_distance: # 관대하게 감
                     diff = projected_uv_zero_mask[:, pair.trainIdx] - torch.tensor([cam_kp[pair.queryIdx].pt],
                                                                                    dtype=torch.float32, device=self.device)
-                    if torch.norm(diff) < 100.0:
+                    if torch.norm(diff) < self.project_map_to_frame_loop_diff:
                         # pixel 좌표계 오차가 적을 때만 True (10px 이내)
                         cam_kp_mask[pair.queryIdx] = True  # matching된 uv를 지칭, 1000개다.
 
@@ -1224,7 +1248,9 @@ class MTFMapper:
 
         ## 연쇄 Projection 수행 해야함
         self.ProjectionPropagationCovis(len(self.KF_bow_list) - 1)
-        self.LoopBA(len(self.KF_bow_list) - 1, 100, point_rate=2, pose_rate=2)
+
+        self.LoopBA(len(self.KF_bow_list) - 1, self.loop_ba_iteration, point_rate=self.loop_ba_point_lr,
+                    pose_rate=self.loop_ba_pose_lr)
         for loop_kfs in loop_list:
             self.LoopBuildCovisGraph(len(self.KF_bow_list) - 1, loop_kfs)
 
