@@ -238,14 +238,14 @@ class MTFMapper:
         cam_kp_mask = torch.zeros(len(cam_kp), dtype=torch.bool).to(self.device)
         index_2D_3D = torch.full((1, len(cam_kp)), -1, dtype=torch.int32, device=self.device).squeeze()
 
-        match_cntr = 0
-        cntr = 0
+        # match_cntr = 0
+        # cntr = 0
         for match_set in matches:
             match_set = sorted(match_set, key=lambda x: x.distance)
             if match_set[0].distance >= self.project_map_to_frame_distance:
                 break
-            else:
-                match_cntr+=1
+            # else:
+                # match_cntr+=1
             for pair in match_set:
                 if pair.distance < 50:
                     diff = projected_uv_zero_mask[:, pair.trainIdx] - torch.tensor([cam_kp[pair.queryIdx].pt],
@@ -257,9 +257,9 @@ class MTFMapper:
 
                         index_2D_3D[pair.queryIdx] = pc_ptr_index
                         self.pointclouds[6, pc_ptr_index] += 1
-                        cntr +=1
+                        # cntr +=1
                         break
-        print("Project(usual) match cnt: ", cntr, match_cntr)
+        # print("Project(usual) match cnt: ", cntr, match_cntr)
 
         descriptors = cam_desc_np.download()
         descriptor_list = []
@@ -269,7 +269,7 @@ class MTFMapper:
         
         pc_index = self.pointclouds.shape[1]
 
-        print("camp_kp_mask", torch.count_nonzero(cam_kp_mask), cam_kp_mask.shape)
+        # print("camp_kp_mask", torch.count_nonzero(cam_kp_mask), cam_kp_mask.shape)
         for i in range(cam_kp_mask.shape[0]):
             if not cam_kp_mask[i]:
                 index_2D_3D[i] = pc_index
@@ -297,7 +297,7 @@ class MTFMapper:
         self.pointclouds_desc = torch.cat((self.pointclouds_desc, descriptor_torch), dim=0)
 
         self.index_2D_3D.append(index_2D_3D.detach())
-        print("prject usual ends")
+        # print("prject usual ends")
 
         # 5번 과정 완료
 
@@ -407,7 +407,6 @@ class MTFMapper:
             if bow_score_min > score:
                 bow_score_min = score
 
-        print("Detect Loop BOW", current_idx, bow_score_min)
         if bow_score_min < 0.65:  # 휴리스틱
             bow_score_min = 0.65
         # loop candidate 확보
@@ -480,8 +479,7 @@ class MTFMapper:
 
             match2d2d_candidate_list_score_tmp = sorted(match2d2d_candidate_list_score_tmp, key=lambda x: x[1], reverse=True)
 
-
-            print("match2d2d_candidate_list", current_idx, match2d2d_candidate_list, match2d2d_candidate_list_score_tmp)
+            # print("match2d2d_candidate_list", current_idx, match2d2d_candidate_list, match2d2d_candidate_list_score_tmp)
             return result, match2d2d_candidate_list, match2d2d_candidate_list_score_tmp[0][0]  # , oldest_loop_frame
 
     def DetectLoopOldframe(self, current_idx):
@@ -612,13 +610,11 @@ class MTFMapper:
                                                       reprojectionError=1, iterationsCount=1000)
 
         rot, _ = cv2.Rodrigues(rvec)
-        print("rot, tvec", rot, tvec)
         relative_pose = torch.eye(4, dtype=torch.float32, device=self.device)
         relative_pose[:3, :3] = torch.from_numpy(rot).to(self.device).detach()
         relative_pose[:3, 3] = torch.from_numpy(tvec).to(self.device).squeeze().detach()
         ref_pose = self.KF_poses[:, :, ref_idx].detach()
         current_pose = torch.matmul(ref_pose, torch.inverse(relative_pose))
-        print("Hard Pose", ref_pose, relative_pose, current_pose)
         return True, current_pose.detach()
 
     def CompareLoopPose(self, current_pose, loop_pose):
@@ -633,9 +629,7 @@ class MTFMapper:
         shift_matrix = current_pose[:3, 3] - loop_pose[:3, 3]
         shift = torch.dot(shift_matrix, shift_matrix)
 
-        print("CompareLoopPose", angle, shift)
-
-        if (angle > 0.2 or shift > 0.1):
+        if (angle > self.loop_closing_pose_threshold_angle or shift > self.loop_closing_pose_threshold_shift):
             return True
         else:
             return False
@@ -651,18 +645,15 @@ class MTFMapper:
 
             shift_matrix = self.GKF_pose[:3, 3] - pose[:3, 3]
             shift = torch.dot(shift_matrix, shift_matrix)
-        if(angle > self.superpixel_kf_selection_angle or shift > self.superpixel_kf_selection_shift):
+        if (angle > self.superpixel_kf_selection_angle or shift > self.superpixel_kf_selection_shift):
             return True
         else:
             return False
 
     def PointPtrUpdate(self):
         flag_index = torch.zeros(self.pointclouds_ptr.shape[1], dtype=torch.bool).to(self.device)
-        print("pointptrUpdate Total:", flag_index.shape)
         cntr = 0
         for idx in range(self.pointclouds_ptr.shape[1]):
-            if idx%10000 == 0:
-                print("pointptrUpdate:", idx)
             if flag_index[idx]:
                 continue
             else:
@@ -675,147 +666,6 @@ class MTFMapper:
                     flag_index[ptrs] = True
                     cntr += 1
                     self.pointclouds_ptr[0, ptrs] = ptr_val
-        print("pointptrUpdated COUNT:", cntr)
-
-    def LoopAdaptiveBA(self, current_idx, iteration_num, point_rate, pose_rate):
-        index_2D_3D_all = self.index_2D_3D.copy()
-
-        fixed_frame_list = self.KF_covis_list[current_idx].copy()
-        fixed_frame_list.append(current_idx)
-        if not (0 in fixed_frame_list):
-            fixed_frame_list.append(0)
-
-        for j in range(len(self.KF_bow_list), 0, -1):
-            kf_idx = j - 1
-            # KF 한칸 씩 전진 한다.
-            if kf_idx in fixed_frame_list:
-                # fixed pose면 다음으로 넘긴다.
-                continue
-
-            # 최신 Frame에서 옛날 방향으로 propagation 한다.
-            # 한 프레임 뒤와 현 프레임에서 동시에 발견된 point를 찾는다.
-            # 그 point를 기준으로 현프레임 pose를 optimize한다.
-            pre_index = index_2D_3D_all[kf_idx +1].detach()
-            current_index = index_2D_3D_all[kf_idx].detach()
-
-            pre_expanded = pre_index.unsqueeze(1)
-            current_expanded = current_index.unsqueeze(0)
-
-            # Intersection
-            # pre_intersection_mask = torch.any(pre_expanded == current_expanded, dim=1)
-            current_intersection_mask = torch.any(pre_expanded == current_expanded, dim=0)
-            print("current intersection_mask", int(torch.count_nonzero(current_intersection_mask)))
-
-            # Keypoints
-            # sharing with prev
-            share_keypoints = self.KF_kp_list[kf_idx].detach()[:, current_intersection_mask]
-            share_pointcloud_indice = self.pointclouds_ptr.detach()[0, current_index[current_intersection_mask]]  # 1000
-            share_pointcloud_seen_from_kf = self.pointclouds.detach()[:, share_pointcloud_indice[:]]
-            share_cntr_mask = share_pointcloud_seen_from_kf[6, :] > 3  # 1000
-
-            share_pointcloud_seen_from_kf_ctr = share_pointcloud_seen_from_kf[:, share_cntr_mask]
-            share_pointcloud_forward = torch.ones((4, share_pointcloud_seen_from_kf_ctr.shape[1]), dtype=torch.float32,
-                                                  device=self.device)
-            share_pointcloud_forward[:3, :] = share_pointcloud_seen_from_kf_ctr[:3, :]
-            share_keypoints = share_keypoints[:, share_cntr_mask]
-
-            # Keypoints
-            # Newly found in current
-            new_keypoints = self.KF_kp_list[kf_idx].detach()[:, ~current_intersection_mask]
-            new_pointcloud_indice = self.pointclouds_ptr.detach()[0, current_index[~current_intersection_mask]]  # 1000
-            new_pointcloud_seen_from_kf = self.pointclouds.detach()[:, new_pointcloud_indice[:]]
-            new_cntr_mask = new_pointcloud_seen_from_kf[6, :] > 3  # 1000
-
-            new_pointcloud_seen_from_kf_ctr = new_pointcloud_seen_from_kf[:, new_cntr_mask]
-            new_pointcloud_forward = torch.ones((4, new_pointcloud_seen_from_kf_ctr.shape[1]), dtype=torch.float32,
-                                                  device=self.device)
-            new_pointcloud_forward[:3, :] = new_pointcloud_seen_from_kf_ctr[:3, :]
-            new_keypoints = new_keypoints[:, new_cntr_mask]
-            print("key points| share: ", int(share_keypoints.shape[1]), "new: ", int(new_keypoints.shape[1]))
-
-            # Pose setting
-            kf_pose = self.KF_poses[:, :, kf_idx].detach()
-            pose_last = torch.eye((4), dtype=torch.float32, device=self.device)
-            kf_pose[3:4, :] = pose_last[3:4, :]
-            poses_param = nn.Parameter(kf_pose.detach().requires_grad_(True))
-
-            # Pose Optimizer params
-            poses_lr = 0.1 ** pose_rate
-            l = [
-                {'params': [poses_param], 'lr': poses_lr, "name": "poses"}
-            ]
-            optimizer = torch.optim.Adam(l, lr=1.0, eps=1e-8)
-
-            # Optimize Pose
-            min_loss = 1000
-            cntr = 0
-            while min_loss > 10:
-                for iteration in range(iteration_num):
-                    world_to_kf = torch.inverse(poses_param)
-                    transformed_xyz = torch.matmul(world_to_kf, share_pointcloud_forward)[:3, :]
-                    projected_uv = torch.matmul(self.intr, transformed_xyz)
-                    mask = projected_uv[2, :].ne(0)
-                    projected_uv_mask = projected_uv[:, mask]
-                    projected_uv_mask = projected_uv_mask / projected_uv_mask[2, :]  # projection 한 uv
-                    keypoints_masked = share_keypoints[:, mask]
-
-                    loss = torch.norm((keypoints_masked - projected_uv_mask[:2, :]), dim=0)
-                    loss_total = torch.sum(loss) / (projected_uv_mask.shape[1])
-                    if iteration == iteration_num-1:
-                        print("Fix Pose lose", float(loss_total), "iteration: ", iteration, "kf: ", kf_idx)
-
-                    loss_total.backward()
-                    # loss_total.backward(retain_graph=True)
-                    optimizer.step()
-                    optimizer.zero_grad(set_to_none=True)
-                    if float(loss_total) < min_loss:
-                        min_loss = float(loss_total)
-                if cntr > 5:
-                    break
-
-            # Fix pose
-            self.KF_poses[:3, :, kf_idx] = poses_param[:3, :].detach()
-            fixed_pose = self.KF_poses[:, :, kf_idx].detach()
-
-            # PC Optimizer params
-            pointclouds_param = nn.Parameter(new_pointcloud_forward.detach().requires_grad_(True))
-            pointclouds_lr = 0.1 ** point_rate
-            l = [
-                {'params': [pointclouds_param], 'lr': pointclouds_lr, "name": "pointclouds"},
-            ]
-            optimizer = torch.optim.Adam(l, lr=1.0, eps=1e-8)
-            min_loss = 1000
-            cntr = 0
-            while min_loss > 10:
-                for iteration in range(iteration_num):
-                    world_to_kf = torch.inverse(fixed_pose)
-                    transformed_xyz = torch.matmul(world_to_kf, pointclouds_param)[:3, :]
-                    projected_uv = torch.matmul(self.intr, transformed_xyz)
-                    mask = projected_uv[2, :].ne(0)
-                    projected_uv_mask = projected_uv[:, mask]
-                    projected_uv_mask = projected_uv_mask / projected_uv_mask[2, :]  # projection 한 uv
-                    keypoints_masked = new_keypoints[:, mask]
-
-                    loss = torch.norm((keypoints_masked - projected_uv_mask[:2, :]), dim=0)
-                    loss_total = torch.sum(loss) / (projected_uv_mask.shape[1])
-                    if iteration == iteration_num-1:
-                        print("Fix PC lose", loss_total, "iteration: ", iteration, "kf: ", kf_idx)
-                    loss_total.backward()
-                    # loss_total.backward(retain_graph=True)
-                    optimizer.step()
-                    optimizer.zero_grad(set_to_none=True)
-                    if float(loss_total) < min_loss:
-                        min_loss = float(loss_total)
-                if cntr > 5:
-                    break
-
-            #Fix point clouds
-            print("Fix pointclouds", (self.pointclouds[:, new_pointcloud_indice[:]]).shape, pointclouds_param.shape)
-            (self.pointclouds[:3, new_pointcloud_indice[:]])[:, new_cntr_mask] = pointclouds_param[:3, :]
-
-
-        GKF_poses = torch.index_select(self.KF_poses, 2, self.GKF_index_list)
-        self.GKF_pose = GKF_poses[:, :, -1].detach()
 
 
     def LoopBA(self, current_idx, iteration_num, point_rate, pose_rate):
@@ -897,7 +747,7 @@ class MTFMapper:
             if uv_cnt == 0:
                 continue
             loss_avg = loss_total / uv_cnt
-            print('loss total iteration', iteration, loss_avg)
+            # print('loss total iteration', iteration, loss_avg)
 
             loss_avg.backward(retain_graph=True)
             optimizer.step()
@@ -910,7 +760,6 @@ class MTFMapper:
 
         GKF_poses = torch.index_select(self.KF_poses, 2, self.GKF_index_list)
         self.GKF_pose = GKF_poses[:, :, -1].detach()
-        print("LOOP BA ENDS")
 
     def LocalBA(self, current_idx, iteration_num, point_rate, pose_rate):
         index_2D_3D_all = self.index_2D_3D.copy()
@@ -936,8 +785,8 @@ class MTFMapper:
         pose_combined[:, :, ~pose_mask].requires_grad = False
         poses_param = nn.Parameter(pose_combined)
 
-        pointclouds_lr =  0.1 ** point_rate
-        poses_lr = 0.1 ** pose_rate
+        pointclouds_lr = point_rate
+        poses_lr = pose_rate
         l = [
             {'params': [pointclouds_param], 'lr': pointclouds_lr, "name": "pointclouds"},
             {'params': [poses_param], 'lr': poses_lr, "name": "poses"}
@@ -976,7 +825,6 @@ class MTFMapper:
 
                 loss = torch.norm((keypoints - cam_uv_mask[:2, :]), dim=0)
                 kf_loss = float(torch.sum(loss)) / float(keypoints.shape[1])
-                print("LocalBA ", iteration, kf_idx, kf_loss)
                 if loss_max < kf_loss:
                     loss_max = kf_loss
                 loss_total += torch.sum(loss)
@@ -984,7 +832,6 @@ class MTFMapper:
             if uv_cnt == 0:
                 continue
             loss_avg = loss_total / uv_cnt
-            print('loss total iteration', iteration, loss_avg)
 
             loss_avg.backward(retain_graph=True)
             optimizer.step()
@@ -1079,16 +926,13 @@ class MTFMapper:
     def LoopCloseHardCovis(self, idx):
         covis_list = self.KF_covis_list[idx].copy()
         covis_list.sort(reverse=True)
-        print("CLOSE HARD COVISs", idx, covis_list)
         for kf in covis_list:
             if (kf+1) in covis_list:
                 lc_result, loop_pose = self.LoopCloseHard(kf, kf+1)
-                print("Close Hard Covis", kf, " related to ", kf+1, lc_result)
                 if lc_result:
                     self.KF_poses[:3, :, kf] = loop_pose.detach()[:3, :]
             else:
                 lc_result, loop_pose = self.LoopCloseHard(kf, idx)
-                print("Close Hard Covis", kf, " related to ", idx, lc_result)
                 if lc_result:
                     self.KF_poses[:3, :, kf] = loop_pose.detach()[:3, :]
 
@@ -1172,15 +1016,15 @@ class MTFMapper:
         cam_kp = self.orb_cuda.convert(orb[0])
         cam_kp_mask = torch.zeros(len(cam_kp), dtype=torch.bool).to(self.device)
         del_position = torch.tensor([999, 999, 999], dtype=torch.float32, device=self.device)
-        match_cntr = 0
-        cntr = 0
-        update_cntr = 0
+        # match_cntr = 0
+        # cntr = 0
+        # update_cntr = 0
         for match_set in matches:
             match_set = sorted(match_set, key=lambda x: x.distance)
             if match_set[0].distance >= 50:
                 break
-            else:
-                match_cntr+=1
+            # else:
+            #     match_cntr+=1
             for pair in match_set:
                 if pair.distance < self.project_map_to_frame_loop_distance: # 관대하게 감
                     diff = projected_uv_zero_mask[:, pair.trainIdx] - torch.tensor([cam_kp[pair.queryIdx].pt],
@@ -1197,12 +1041,12 @@ class MTFMapper:
                             self.pointclouds[6, pc_ptr_index] += self.pointclouds[6, index_2d]
                             self.pointclouds[6, index_2d] = -1
                             self.pointclouds[:3, index_2d] = del_position.detach()
-                            update_cntr+=1
-                        cntr +=1
+                        #     update_cntr+=1
+                        # cntr +=1
                         break
                 else:
                     break
-        print(idx, "project match cnt: ", cntr, match_cntr, update_cntr)
+        # print(idx, "project match cnt: ", cntr, match_cntr, update_cntr)
 
         cam_xyz_list = []
         cam_pc_index_list = []
@@ -1219,7 +1063,7 @@ class MTFMapper:
         global_xyz_torch = self.ConvertCamXYZ2GlobalXYZ(cam_xyz_torch, init_pose).to(self.device)
         t_list = torch.from_numpy(np.array(cam_pc_index_list)).to(self.device)
         self.pointclouds[:3, t_list[:]] = global_xyz_torch[:3, :].detach()
-        print("pointclouds_desc", self.pointclouds_desc.shape, self.pointclouds.shape)
+        # print("pointclouds_desc", self.pointclouds_desc.shape, self.pointclouds.shape)
 
 
     def ViewSimilarity(self, pose1, pose2):
@@ -1371,7 +1215,7 @@ class MTFMapper:
             self.ProjectMapToFrame(Current_pose, (current_kp, current_des), KF_xyz, rgb_img)
             # Gaussian Splatting에 넣을 키 프레임인지 확인한다.
             if self.CheckSuperPixelFrame(self.KF_poses[:, :, -1]):
-                # self.LocalBA(len(self.KF_bow_list) - 1, 10, 2, 2)
+                # self.LocalBA(len(self.KF_bow_list) - 1, 10, 0.01, 0.01)
                 # Flag_BA = True
 
                 self.GKF_pose = self.KF_poses[:, :, -1].detach()
