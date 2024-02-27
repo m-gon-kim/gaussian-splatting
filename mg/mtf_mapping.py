@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch import nn
 class MTFMapper:
-    def __init__(self, dataset):
+    def __init__(self, dataset, parameters):
         self.width = 640
         self.height = 480
         self.device = "cuda"
@@ -22,6 +22,7 @@ class MTFMapper:
             self.GKF_index_list = torch.empty((0), dtype=torch.int32, device=self.device)
             self.frustum_center = torch.zeros((4,1), dtype=torch.float32, device=self.device)
             self.frustum_radius = 1.6
+        print("mtf", parameters)
 
         self.SetIntrinsics(dataset)
         # from images

@@ -18,8 +18,8 @@ def PlayDataset(dataset, img_pair_q):
         rgb, gray, d = dataset.ReturnData(index + begin_index)
         img_pair_q.put([awake, [rgb, gray, d]])
 
-def TrackingTorch(dataset, img_pair_q, tracking_result_q):
-    tracker = TrackerTorch(dataset)
+def TrackingTorch(dataset, parameters, img_pair_q, tracking_result_q):
+    tracker = TrackerTorch(dataset, parameters)
 
     frame = 0
 
@@ -38,8 +38,8 @@ def TrackingTorch(dataset, img_pair_q, tracking_result_q):
             if tracking_result[0][0]:  # Mapping is required
                 tracking_result_q.put([awake, tracking_result])
 
-def MTF_Mapping(dataset, tracking_result_q, mapping_result_q):
-    mapper = MTFMapper(dataset)
+def MTF_Mapping(dataset, parameters, tracking_result_q, mapping_result_q):
+    mapper = MTFMapper(dataset, parameters)
 
     while True:
         if not tracking_result_q.empty():
@@ -59,8 +59,8 @@ def MTF_Mapping(dataset, tracking_result_q, mapping_result_q):
                 mapping_result_q.put([True, loop_close_result])
                 # mapper.PointPtrUpdate()
 
-def GaussianMappingTest(dataset, mapping_result_q):
-    gaussian_mapper = GaussianMapper(dataset)
+def GaussianMappingTest(dataset, parameters, mapping_result_q):
+    gaussian_mapper = GaussianMapper(dataset, parameters)
 
     opt_iter = 0
     viz_iter = 0
@@ -97,13 +97,12 @@ if __name__ == '__main__':
 
     dataset_class = Dataset()
     dataset = dataset_class.GetDataset()
+    parameters = dataset_class.parameters
 
     process_play_data = mp.Process(target=PlayDataset, args=(dataset, img_pair_q,))
-    # process_tracking = mp.Process(target=TrackingTest, args=(img_pair_q, tracking_result_q,))
-    process_tracking_torch = mp.Process(target=TrackingTorch, args=(dataset, img_pair_q, tracking_result_q,))
-    process_mapping = mp.Process(target=MTF_Mapping, args=(dataset, tracking_result_q, mapping_result_q,))
-    # process_mapping = mp.Process(target=MappingTest, args=(tracking_result_q, mapping_result_q,))
-    process_gaussian_mapping = mp.Process(target=GaussianMappingTest, args=(dataset, mapping_result_q,))
+    process_tracking_torch = mp.Process(target=TrackingTorch, args=(dataset, parameters, img_pair_q, tracking_result_q,))
+    process_mapping = mp.Process(target=MTF_Mapping, args=(dataset, parameters, tracking_result_q, mapping_result_q,))
+    process_gaussian_mapping = mp.Process(target=GaussianMappingTest, args=(dataset, parameters, mapping_result_q,))
 
     process_gaussian_mapping.start()
     process_mapping.start()
