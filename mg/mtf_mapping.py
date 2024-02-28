@@ -22,7 +22,6 @@ class MTFMapper:
             self.GKF_index_list = torch.empty((0), dtype=torch.int32, device=self.device)
             self.frustum_center = torch.zeros((4,1), dtype=torch.float32, device=self.device)
             self.frustum_radius = 1.6
-        print("mtf", parameters)
 
 
         self.orb_nfeatures = parameters["orb_nfeatures"]
@@ -30,24 +29,36 @@ class MTFMapper:
         self.project_map_to_frame_near = parameters["xyz_crop"]["project_map_to_frame"]["near"]
         self.project_map_to_frame_far = parameters["xyz_crop"]["project_map_to_frame"]["far"]
         self.project_map_to_frame_padding = parameters["xyz_crop"]["project_map_to_frame"]["padding"]
-        self.project_map_to_frame_distance = parameters["xyz_crop"]["project_map_to_frame"]["distance"]
+        self.project_map_to_frame_hm_distance = parameters["xyz_crop"]["project_map_to_frame"]["hm_distance"]
         self.project_map_to_frame_diff = parameters["xyz_crop"]["project_map_to_frame"]["diff"]
 
         self.project_map_to_frame_loop_near = parameters["xyz_crop"]["project_map_to_frame_loop"]["near"]
         self.project_map_to_frame_loop_far = parameters["xyz_crop"]["project_map_to_frame_loop"]["far"]
         self.project_map_to_frame_loop_padding = parameters["xyz_crop"]["project_map_to_frame_loop"]["padding"]
-        self.project_map_to_frame_loop_distance = parameters["xyz_crop"]["project_map_to_frame_loop"]["distance"]
+        self.project_map_to_frame_loop_hm_distance = parameters["xyz_crop"]["project_map_to_frame_loop"]["hm_distance"]
         self.project_map_to_frame_loop_diff = parameters["xyz_crop"]["project_map_to_frame_loop"]["diff"]
 
         self.superpixel_kf_selection_angle = parameters["superpixel_kf_selection"]["angle"]
         self.superpixel_kf_selection_shift = parameters["superpixel_kf_selection"]["shift"]
 
-        self.loop_closing_hard_distance = parameters["loop_closing_hard"]["distance"]
+
         self.loop_closing_hard_pnp_thrshold = parameters["loop_closing_hard"]["pnp_threshold"]
         self.loop_closing_hard_near = parameters["loop_closing_hard"]["near"]
         self.loop_closing_hard_far = parameters["loop_closing_hard"]["far"]
+
+
+        self.loop_closing_hard_diff = parameters["loop_closing_hard"]["diff"]
+        self.loop_closing_hard_diff_large = parameters["loop_closing_hard"]["diff_large"]
+        self.loop_closing_hard_match_cnt = parameters["loop_closing_hard"]["match_cnt"]
+        self.loop_closing_hard_hm_distance = parameters["loop_closing_hard"]["hm_distance"]
+
+
         self.loop_closing_pose_threshold_angle = parameters["loop_closing_pose_threshold"]["angle"]
         self.loop_closing_pose_threshold_shift = parameters["loop_closing_pose_threshold"]["shift"]
+
+
+
+
 
         self.loop_ba_iteration = parameters["loop_ba"]["iteration"]
         self.loop_ba_point_lr = parameters["loop_ba"]["point_lr"]
@@ -64,6 +75,7 @@ class MTFMapper:
         self.KF_loop_list = []
         self.KF_essen_list = []
         self.index_2D_3D = []
+        self.KF_num_list = []
 
         self.orb_cuda = cv2.cuda_ORB.create(nfeatures=1000, scaleFactor=1.2, nlevels=8, edgeThreshold=31, firstLevel=0,
                                             WTA_K=2, scoreType=cv2.ORB_HARRIS_SCORE, patchSize=31, fastThreshold=20, )
@@ -247,7 +259,7 @@ class MTFMapper:
         # cntr = 0
         for match_set in matches:
             match_set = sorted(match_set, key=lambda x: x.distance)
-            if match_set[0].distance >= self.project_map_to_frame_distance:
+            if match_set[0].distance >= self.project_map_to_frame_hm_distance:
                 break
             # else:
                 # match_cntr+=1
@@ -256,7 +268,6 @@ class MTFMapper:
                     diff = projected_uv_zero_mask[:, pair.trainIdx] - torch.tensor([cam_kp[pair.queryIdx].pt],
                                                                                    dtype=torch.float32, device=self.device)
                     if torch.norm(diff) < self.project_map_to_frame_diff:
-                        # pixel 좌표계 오차가 적을 때만 True (50px 이내)
                         cam_kp_mask[pair.queryIdx] = True  # matching된 uv를 지칭, 1000개다.
                         pc_ptr_index = int(index_3D[pair.trainIdx].detach().cpu())  # pointcloud_idx
 
@@ -562,7 +573,7 @@ class MTFMapper:
             current_covis_list.sort()
             return result, current_covis_list[0]  # , oldest_loop_frame
 
-    def LoopCloseHard(self, current_idx, ref_idx):
+    def LoopCloseHard(self, current_idx, ref_idx, relative_pose):
         ref_xyz = self.KF_xyz_list[ref_idx]
         pnp_ref_3d_list = []
         pnp_query_2d_list = []
@@ -572,29 +583,77 @@ class MTFMapper:
         ref_kp, ref_des = self.KF_orb_list[ref_idx]
         ref_kp_cpu = self.orb_cuda.convert(ref_kp)
 
-        matches = self.bf.match(current_des, ref_des)
-        matches = sorted(matches, key=lambda x: x.distance)
+        xyz_list = []
+        for kp in ref_kp_cpu:
+            u_f, v_f = kp.pt
+            u = int(u_f)
+            v = int(v_f)
+            xyz_list.append(ref_xyz[v][u])
+        xyz_t = torch.tensor(np.array(xyz_list)).to(self.device)
+        xyz_t = torch.transpose(xyz_t, 1, 0)
+        xyz_t = torch.cat((xyz_t, torch.ones((1, xyz_t.shape[1])).to(self.device)), dim=0)
+        xyz_guide_search = torch.matmul(relative_pose, xyz_t)
+        xyz_guide_search = xyz_guide_search / xyz_guide_search[3, :]
+        uv_guide_search = torch.matmul(self.intr, xyz_guide_search[:3, :])
+        uv_guide_search = uv_guide_search / uv_guide_search[2, :]
+        uv_guide_search_np = torch.transpose(uv_guide_search[:2, :], 1, 0).detach().cpu().numpy()
 
-        for pair in matches:
-            if pair.distance < self.loop_closing_hard_distance:
-                ref_u, ref_v = ref_kp_cpu[pair.trainIdx].pt
-                ref_u = int(ref_u)
-                ref_v = int(ref_v)
-                current_u, current_v = current_kp_cpu[pair.queryIdx].pt
-                current_u = int(current_u)
-                current_v = int(current_v)
-                # Skip the edge of the images
-                if current_u == 0 or current_v == 0 or ref_u == 0 or ref_v == 0 or current_u == self.width - 1 \
-                        or current_v == self.height - 1 or ref_u == self.width - 1 or ref_v == self.height - 1:
-                    continue
 
-                pnp_ref_3d_list.append(ref_xyz[ref_v][ref_u])
-                pnp_query_2d_list.append(np.array([float(current_u), float(current_v)], dtype=np.float32))
-            else:
+
+        matches = self.bf.knnMatch(current_des, ref_des, 5, None, True)
+        matches = sorted(matches, key=lambda x: x[0].distance)
+
+        for match_set in matches:
+            match_set = sorted(match_set, key=lambda x: x.distance)
+            if match_set[0].distance >= self.loop_closing_hard_hm_distance:
                 break
-        print("HARD CLOSE CNT", current_idx, ref_idx, len(pnp_ref_3d_list))
-        if len(pnp_ref_3d_list) < self.loop_closing_hard_pnp_thrshold:
+            for pair in match_set:
+                if pair.distance < self.loop_closing_hard_hm_distance:
+                    ref_uv = np.array(ref_kp_cpu[pair.trainIdx].pt)
+                    ref_u = int(ref_uv[0])
+                    ref_v = int(ref_uv[1])
+                    current_uv = np.array(current_kp_cpu[pair.queryIdx].pt)
+                    current_u = int(current_uv[0])
+                    current_v = int(current_uv[1])
+                    # Skip the edge of the images
+                    if current_u == 0 or current_v == 0 or ref_u == 0 or ref_v == 0 or current_u == self.width - 1 \
+                            or current_v == self.height - 1 or ref_u == self.width - 1 or ref_v == self.height - 1:
+                        continue
+                    guided_uv = uv_guide_search_np[pair.trainIdx]
+                    diff = guided_uv - current_uv
+                    if np.linalg.norm(diff) < self.loop_closing_hard_diff:
+                        pnp_ref_3d_list.append(ref_xyz[ref_v][ref_u])
+                        pnp_query_2d_list.append(current_uv)
+                        break
+        print("HARD CLOSE CNT 1st", self.KF_num_list[current_idx], self.KF_num_list[ref_idx], len(pnp_query_2d_list))
+        if len(pnp_query_2d_list) < self.loop_closing_hard_match_cnt:
+            pnp_ref_3d_list = []
+            pnp_query_2d_list = []
+            for match_set in matches:
+                if match_set[0].distance >= self.loop_closing_hard_hm_distance:
+                    break
+                for pair in match_set:
+                    if pair.distance < self.loop_closing_hard_hm_distance:
+                        ref_uv = np.array(ref_kp_cpu[pair.trainIdx].pt)
+                        ref_u = int(ref_uv[0])
+                        ref_v = int(ref_uv[1])
+                        current_uv = np.array(current_kp_cpu[pair.queryIdx].pt)
+                        current_u = int(current_uv[0])
+                        current_v = int(current_uv[1])
+                        # Skip the edge of the images
+                        if current_u == 0 or current_v == 0 or ref_u == 0 or ref_v == 0 or current_u == self.width - 1 \
+                                or current_v == self.height - 1 or ref_u == self.width - 1 or ref_v == self.height - 1:
+                            continue
+                        guided_uv = uv_guide_search_np[pair.trainIdx]
+                        diff = guided_uv - current_uv
+                        if np.linalg.norm(diff) < self.loop_closing_hard_diff_large:
+                            pnp_ref_3d_list.append(ref_xyz[ref_v][ref_u])
+                            pnp_query_2d_list.append(current_uv)
+                            break
+        print("HARD CLOSE CNT 2nd", self.KF_num_list[current_idx], self.KF_num_list[ref_idx], len(pnp_query_2d_list))
+        if len(pnp_query_2d_list) < self.loop_closing_hard_pnp_thrshold:
             return False, None
+
         ref_3d_list = np.array(pnp_ref_3d_list)
         query_2d_list = np.array(pnp_query_2d_list)
 
@@ -606,9 +665,9 @@ class MTFMapper:
         z_mask_2 = ref_3d_list[:, 2] <= self.loop_closing_hard_far
         ref_3d_list = ref_3d_list[z_mask_2]
         query_2d_list = query_2d_list[z_mask_2]
-        #
 
-        # PNP Solver
+
+    # PNP Solver
         ret, rvec, tvec, inliers = cv2.solvePnPRansac(ref_3d_list, query_2d_list, self.intr_np,
                                                       distCoeffs=None, flags=cv2.SOLVEPNP_EPNP,
                                                       confidence=0.9999,
@@ -620,6 +679,7 @@ class MTFMapper:
         relative_pose[:3, 3] = torch.from_numpy(tvec).to(self.device).squeeze().detach()
         ref_pose = self.KF_poses[:, :, ref_idx].detach()
         current_pose = torch.matmul(ref_pose, torch.inverse(relative_pose))
+        current_pose = current_pose/ current_pose[3, 3]
         return True, current_pose.detach()
 
     def CompareLoopPose(self, current_pose, loop_pose):
@@ -633,6 +693,7 @@ class MTFMapper:
 
         shift_matrix = current_pose[:3, 3] - loop_pose[:3, 3]
         shift = torch.dot(shift_matrix, shift_matrix)
+        print("compare loop pose", angle, shift)
 
         if (angle > self.loop_closing_pose_threshold_angle or shift > self.loop_closing_pose_threshold_shift):
             return True
@@ -838,6 +899,8 @@ class MTFMapper:
             if uv_cnt == 0:
                 continue
             loss_avg = loss_total / uv_cnt
+            if iteration % int(iteration_num/10) == 0:
+                print('loss total iteration', iteration, "/", iteration_num, " loss: ", loss_avg)
 
             loss_avg.backward(retain_graph=True)
             optimizer.step()
@@ -929,16 +992,19 @@ class MTFMapper:
         for kf in covis_list:
             self.ProjectMapToFrameLoop(kf)
 
-    def LoopCloseHardCovis(self, idx):
+    def LoopCloseHardCovis(self, idx, covis_relative_pose):
         covis_list = self.KF_covis_list[idx].copy()
         covis_list.sort(reverse=True)
         for kf in covis_list:
+            kf_pose = torch.matmul(self.KF_poses[:3, :, kf], covis_relative_pose)
             if (kf+1) in covis_list:
-                lc_result, loop_pose = self.LoopCloseHard(kf, kf+1)
+                relative_pose = torch.matmul(torch.inverse(self.KF_poses[:, :, kf]), self.KF_poses[:, :, kf+1])
+                lc_result, loop_pose = self.LoopCloseHard(kf, kf+1, relative_pose)
                 if lc_result:
                     self.KF_poses[:3, :, kf] = loop_pose.detach()[:3, :]
             else:
-                lc_result, loop_pose = self.LoopCloseHard(kf, idx)
+                relative_pose = torch.matmul(torch.inverse(self.KF_poses[:, :, kf]), self.KF_poses[:, :, idx])
+                lc_result, loop_pose = self.LoopCloseHard(kf, idx, relative_pose)
                 if lc_result:
                     self.KF_poses[:3, :, kf] = loop_pose.detach()[:3, :]
 
@@ -1032,7 +1098,7 @@ class MTFMapper:
             # else:
             #     match_cntr+=1
             for pair in match_set:
-                if pair.distance < self.project_map_to_frame_loop_distance: # 관대하게 감
+                if pair.distance < self.project_map_to_frame_loop_hm_distance: # 관대하게 감
                     diff = projected_uv_zero_mask[:, pair.trainIdx] - torch.tensor([cam_kp[pair.queryIdx].pt],
                                                                                    dtype=torch.float32, device=self.device)
                     if torch.norm(diff) < self.project_map_to_frame_loop_diff:
@@ -1064,11 +1130,11 @@ class MTFMapper:
                 cam_pc_index_list.append(pc_index)
                 u, v = cam_kp[i].pt
                 cam_xyz_list.append(xyz[int(v)][int(u)])
-
-        cam_xyz_torch = torch.from_numpy(np.array(cam_xyz_list)).T.to(self.device)
-        global_xyz_torch = self.ConvertCamXYZ2GlobalXYZ(cam_xyz_torch, init_pose).to(self.device)
-        t_list = torch.from_numpy(np.array(cam_pc_index_list)).to(self.device)
-        self.pointclouds[:3, t_list[:]] = global_xyz_torch[:3, :].detach()
+        if len(cam_xyz_list)>0:
+            cam_xyz_torch = torch.transpose(torch.from_numpy(np.array(cam_xyz_list)),1,0).to(self.device)
+            global_xyz_torch = self.ConvertCamXYZ2GlobalXYZ(cam_xyz_torch, init_pose).to(self.device)
+            t_list = torch.from_numpy(np.array(cam_pc_index_list)).to(self.device)
+            self.pointclouds[:3, t_list[:]] = global_xyz_torch[:3, :].detach()
         # print("pointclouds_desc", self.pointclouds_desc.shape, self.pointclouds.shape)
 
 
@@ -1094,7 +1160,7 @@ class MTFMapper:
         Flag_BA = True
         Flag_densification = True
         Flag_GS_PAUSE = False
-        self.LoopCloseHardCovis(len(self.KF_bow_list) - 1)
+        # self.LoopCloseHardCovis(len(self.KF_bow_list) - 1)
 
         ## 연쇄 Projection 수행 해야함
         self.ProjectionPropagationCovis(len(self.KF_bow_list) - 1)
@@ -1143,6 +1209,8 @@ class MTFMapper:
         KF_xyz = sensor[2]
         KF_num = sensor[3]
 
+        self.KF_num_list.append(KF_num)
+
         self.Current_gray_gpuMat.upload(gray_img)
         current_kp, current_des = self.orb_cuda.detectAndComputeAsync(self.Current_gray_gpuMat, None)
         keypoint_list = []
@@ -1188,41 +1256,44 @@ class MTFMapper:
 
             # 현 키프레임 이미지와, 새로운 pose를 저장 한다.
             relative_pose = tracking_result[2]
-            rot = relative_pose[0]
-            quat = relative_pose[1]
-            tvec = relative_pose[2]
 
             with torch.no_grad():
-                KF_relative_pose = torch.eye(4, dtype=torch.float32, device=self.device)
-                KF_relative_pose[:3, :3] = torch.from_numpy(rot).to(self.device).detach()
-                KF_relative_pose[:3, 3] = torch.from_numpy(tvec).to(self.device).squeeze().detach()
+                KF_relative_pose = relative_pose.to(self.device)
 
-                Current_pose = torch.matmul(self.KF_poses[:, :, -1].detach(), torch.inverse(KF_relative_pose))
+                Current_pose = torch.matmul(self.KF_poses[:, :, -1].detach(), KF_relative_pose)
+                Current_pose = Current_pose/ Current_pose[3,3]
                 self.CreateKeyframe(rgb_img, KF_xyz, (current_kp, current_des), Current_pose)
                 self.BuildCovisGraph(current_orb=(current_kp, current_des), ref_idx=len(self.KF_covis_list)-1)
 
             detect_result, loop_list, best_kf = self.DetectLoopGetOldList(len(self.KF_bow_list)-1)
             if detect_result:
-                print("detected!", len(self.KF_bow_list)-1, best_kf)
+
+                print("detected!", self.KF_num_list[len(self.KF_bow_list)-1], self.KF_num_list[best_kf])
                 # 씬이 비슷하게 생기면, Loop detection될 수 있다.
                 # ORB Matching을 수행해서, 탐지된 loop가 유효한 camera pose인지 확인한다.
-                lc_result, loop_pose = self.LoopCloseHard(len(self.KF_bow_list)-1, best_kf)
+                loop_relative_pose = torch.matmul(torch.inverse(self.KF_poses[:, :, len(self.KF_bow_list)-1]),
+                                                  self.KF_poses[:, :, best_kf])
+                lc_result, loop_pose = self.LoopCloseHard(len(self.KF_bow_list)-1, best_kf, loop_relative_pose)
+                # if lc_result:
+                #     if self.CompareLoopPose(current_pose=Current_pose, loop_pose=loop_pose):
+                #         #진짜 loop로 판명난 camerea pose인 경우 아래를 수행함.
+                #         Flag_GS_PAUSE = True
+                #         prev_pose = self.KF_poses[:, :, len(self.KF_bow_list)-1].detach()
+                #         self.KF_poses[:3, :, len(self.KF_bow_list)-1] = loop_pose.detach()[:3, :]
+                #         self.ProjectMapToFrame(loop_pose.detach(),(current_kp, current_des), KF_xyz, rgb_img)
+                #         relative_pose = torch.matmul(torch.inverse(prev_pose), self.KF_poses[:, :, len(self.KF_bow_list)-1])
+                #
+                #         self.LoopCloseHardCovis(len(self.KF_bow_list) - 1, relative_pose)
+                #
+                #         # 우선 아래를 Return해서, Guassian Splatting을 Pause한다.
+                #         return [Flag_GMapping, Flag_First_KF, Flag_BA, Flag_densification, Flag_GS_PAUSE], [[],[], KF_num], [], [], loop_list.copy()
                 if lc_result:
-                    if self.CompareLoopPose(current_pose=Current_pose, loop_pose=loop_pose):
-                        #진짜 loop로 판명난 camerea pose인 경우 아래를 수행함.
-                        Flag_GS_PAUSE = True
-                        self.KF_poses[:3, :, len(self.KF_bow_list)-1] = loop_pose.detach()[:3, :]
-
-                        self.ProjectMapToFrame(loop_pose.detach(),(current_kp, current_des), KF_xyz, rgb_img)
-                        # 우선 아래를 Return해서, Guassian Splatting을 Pause한다.
-                        return [Flag_GMapping, Flag_First_KF, Flag_BA, Flag_densification, Flag_GS_PAUSE], [[],[], KF_num], [], [], loop_list.copy()
-                    else:
-                        Current_pose = loop_pose
+                    Current_pose = loop_pose
             # Loop 가 아닌 경우 아래를 수행한다.
             self.ProjectMapToFrame(Current_pose, (current_kp, current_des), KF_xyz, rgb_img)
             # Gaussian Splatting에 넣을 키 프레임인지 확인한다.
             if self.CheckSuperPixelFrame(self.KF_poses[:, :, -1]):
-                # self.LocalBA(len(self.KF_bow_list) - 1, 10, 0.01, 0.01)
+                # self.LocalBA(len(self.KF_bow_list) - 1, 10, 0.001, 0.001)
                 # Flag_BA = True
 
                 self.GKF_pose = self.KF_poses[:, :, -1].detach()

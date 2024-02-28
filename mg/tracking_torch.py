@@ -22,6 +22,7 @@ class TrackerTorch:
         self.KF_xyz = None
         self.KF_orb = None
         self.intr = np.eye(3, dtype=np.float32)
+        self.intr_t = torch.eye(3, dtype=torch.float32, device=self.device)
         with torch.no_grad():
             self.inv_intr = torch.zeros((3, 3), dtype=torch.float32, device=self.device)
             self.SetIntrinsics(dataset)
@@ -32,9 +33,16 @@ class TrackerTorch:
         self.kf_selection_match_cnt = parameters["kf_selection"]["match_cnt"]
         self.kf_selection_angle = parameters["kf_selection"]["angle"]
         self.kf_selection_shift = parameters["kf_selection"]["shift"]
+        self.guided_search_diff = parameters["guided_search"]["diff"]
+        self.guided_search_diff_large = parameters["guided_search"]["diff_large"]
+        self.guided_search_match_cnt = parameters["guided_search"]["match_cnt"]
+        self.guided_search_hm_distance = parameters["guided_search"]["hm_distance"]
         self.SetORBSettings()
         self.frame_cnt = 0
         self.prev_kf = 0
+
+        self.uv_guide_search = None
+        self.relative_pose_guide_search = None
 
     def SetIntrinsics(self, dataset):
         fx, fy, cx, cy = dataset.get_camera_intrinsic()
@@ -48,6 +56,12 @@ class TrackerTorch:
         self.intr[1][1] = fy
         self.intr[1][2] = cy
         self.intr[2][2] = 1
+
+        self.intr_t[0][0] = fx
+        self.intr_t[0][2] = cx
+        self.intr_t[1][1] = fy
+        self.intr_t[1][2] = cy
+        self.intr_t[2][2] = 1
 
         self.inv_intr[0][0] = 1 / fx
         self.inv_intr[0][2] = -cx / fx
@@ -126,60 +140,117 @@ class TrackerTorch:
         # Convert Depth to XYZ
         with torch.no_grad():
             KF_depth_map = torch.from_numpy(np.array(depth, dtype=np.float32)).to(self.device)
-            KF_xyz = self.RecoverXYZFromKeyFrame(KF_depth_map).detach().cpu().numpy()
+            KF_xyz = self.RecoverXYZFromKeyFrame(KF_depth_map)
 
         self.KF_rgb = rgb
         self.KF_gray_gpuMat = self.Current_gray_gpuMat.clone()
-        self.KF_xyz = KF_xyz
+        self.KF_xyz = KF_xyz.detach()
         self.KF_orb = orb
         self.Initial = False
 
-    def CreateKeyframe(self, rgb, depth, orb):
+        kp_cpu = self.orb.convert(orb[0])
+        xyz_list = []
+        for kp in kp_cpu:
+            u_f, v_f = kp.pt
+            u = int(u_f)
+            v = int(v_f)
+            xyz_list.append((u, v))
+        self.uv_guide_search = np.array(xyz_list)
+
+
+    def CreateKeyframe(self, rgb, depth, orb, relative_pose):
         # Convert Depth to XYZ
         with torch.no_grad():
             KF_depth_map = torch.from_numpy(np.array(depth, dtype=np.float32)).to(self.device)
-            KF_xyz = self.RecoverXYZFromKeyFrame(KF_depth_map).detach().cpu().numpy()
+            KF_xyz = self.RecoverXYZFromKeyFrame(KF_depth_map)
+        KF_xyz_np = KF_xyz.detach().cpu().numpy()
 
         self.KF_rgb = rgb
         self.KF_gray_gpuMat = self.Current_gray_gpuMat.clone()
-        self.KF_xyz = KF_xyz
+        self.KF_xyz = KF_xyz.detach()
         self.KF_orb = orb
 
+        kp_cpu = self.orb.convert(orb[0])
+        xyz_list = []
+        for kp in kp_cpu:
+            u_f, v_f = kp.pt
+            u = int(u_f)
+            v = int(v_f)
+            xyz_list.append(KF_xyz_np[v][u])
+        xyz_t = torch.tensor(np.array(xyz_list)).to(self.device)
+        xyz_t = torch.transpose(xyz_t, 1, 0)
+        xyz_t = torch.cat((xyz_t, torch.ones((1, xyz_t.shape[1])).to(self.device)), dim=0)
+        xyz_guide_search = torch.matmul(torch.inverse(relative_pose), xyz_t)
+        xyz_guide_search = xyz_guide_search/xyz_guide_search[3, :]
+        uv_guide_search = torch.matmul(self.intr_t, xyz_guide_search[:3, :])
+        uv_guide_search = uv_guide_search / uv_guide_search[2, :]
+        self.uv_guide_search = torch.transpose(uv_guide_search[:2, :], 1, 0).detach().cpu().numpy()
+
+
     def Match2D2D(self, orb):
-        matches = self.bf.match(orb[1], self.KF_orb[1])
-        matches = sorted(matches, key=lambda x: x.distance)
+        xyz = self.KF_xyz.detach()
+        xyz_numpy = xyz.cpu().numpy()
+        # init_pose = torch.mul(self.relative_pose_guide_search)
+
+        matches = self.bf.knnMatch(orb[1], self.KF_orb[1], 5, None, True)
+        matches = sorted(matches, key=lambda x: x[0].distance)
+
 
         kf_kp_cpu = self.orb.convert(self.KF_orb[0])
         current_kp_cpu = self.orb.convert(orb[0])
 
-        match_cnt = 0
-        match_cnt_threshold = self.kf_selection_match_cnt
-        for j in matches:
-            if j.distance < 40:
-                match_cnt += 1
-            else:
-                break
-            if match_cnt > match_cnt_threshold:
-                break
-
         query_2d_list = []
         ref_3d_list = []
         ref_color_list = []
-        for j in matches[:match_cnt]:
-            # Append KF lists
-            kf_idx = j.trainIdx  # i.trainIdx
-            kf_x, kf_y = kf_kp_cpu[kf_idx].pt
-            int_kf_x = int(kf_x)
-            int_kf_y = int(kf_y)
-            if (int_kf_y == 0 or int_kf_x == 0 or int_kf_y == 479 or int_kf_x == 639):
-                continue
-            ref_3d_list.append(self.KF_xyz[int_kf_y][int_kf_x])
-            ref_color_list.append(self.KF_rgb[int_kf_y][int_kf_x])
+        for match_set in matches:
+            match_set = sorted(match_set, key=lambda x: x.distance)
+            if match_set[0].distance >= self.guided_search_hm_distance:
+                break
+            for pair in match_set:
+                if pair.distance < self.guided_search_hm_distance:
+                    kf_idx = pair.trainIdx  # i.trainIdxs
+                    kf_x, kf_y = kf_kp_cpu[kf_idx].pt
+                    int_kf_x = int(kf_x)
+                    int_kf_y = int(kf_y)
+                    if (int_kf_y == 0 or int_kf_x == 0 or int_kf_y == 479 or int_kf_x == 639):
+                        continue
 
-            # Append Query list
-            q_idx = j.queryIdx  # i.trainIdx
-            x, y = current_kp_cpu[q_idx].pt
-            query_2d_list.append(np.array([x, y], dtype=np.float32))
+                    q_idx = pair.queryIdx  # i.trainIdx
+                    uv = current_kp_cpu[q_idx].pt
+                    guided_uv = self.uv_guide_search[kf_idx]
+                    diff = uv - guided_uv
+                    if np.linalg.norm(diff) < self.guided_search_diff:
+                        ref_3d_list.append(xyz_numpy[int_kf_y][int_kf_x])
+                        ref_color_list.append(self.KF_rgb[int_kf_y][int_kf_x])
+                        query_2d_list.append(uv)
+                        break
+        if len(query_2d_list) < self.guided_search_match_cnt:
+            query_2d_list = []
+            ref_3d_list = []
+            ref_color_list = []
+            for match_set in matches:
+                if match_set[0].distance >= self.guided_search_hm_distance:
+                    break
+                for pair in match_set:
+                    if pair.distance < self.guided_search_hm_distance:
+                        kf_idx = pair.trainIdx  # i.trainIdxs
+                        kf_x, kf_y = kf_kp_cpu[kf_idx].pt
+                        int_kf_x = int(kf_x)
+                        int_kf_y = int(kf_y)
+                        if (int_kf_y == 0 or int_kf_x == 0 or int_kf_y == 479 or int_kf_x == 639):
+                            continue
+
+                        q_idx = pair.queryIdx  # i.trainIdx
+                        uv = current_kp_cpu[q_idx].pt
+                        guided_uv = self.uv_guide_search[kf_idx]
+                        diff = uv - guided_uv
+                        if np.linalg.norm(diff) < self.guided_search_diff_large:
+                            ref_3d_list.append(xyz_numpy[int_kf_y][int_kf_x])
+                            ref_color_list.append(self.KF_rgb[int_kf_y][int_kf_x])
+                            query_2d_list.append(uv)
+                            break
+
+
 
         return np.array(query_2d_list), np.array(ref_3d_list), np.array(ref_color_list, dtype=np.float32)
 
@@ -204,9 +275,10 @@ class TrackerTorch:
         if self.Initial:
             # initial KF
             self.CreateInitalKeyframe(rgb, depth, (current_kp, current_des))
+            # self.relative_pose_guide_search = torch.eye(4, dtype=torch.float32, device=self.device)
             # 0.0. Status
             # 0.1. First KF
-            return [True, True], [rgb, gray, self.KF_xyz, 0]
+            return [True, True], [rgb, gray, self.KF_xyz.detach().cpu().numpy(), 0]
         else:
             # Perform 2D-2D matching and, get corresponding 3D(xyz) points
             query_2d_list, ref_3d_list, ref_color_list = self.Match2D2D((current_kp, current_des))
@@ -225,6 +297,7 @@ class TrackerTorch:
             pnp_ref_3d_list = pnp_ref_3d_list[z_mask_2]
             pnp_query_2d_list = pnp_query_2d_list[z_mask_2]
 
+
             # PNP Solver
             ret, rvec, tvec, inliers = cv2.solvePnPRansac(pnp_ref_3d_list, pnp_query_2d_list, self.intr,
                                                           distCoeffs=None, flags=cv2.SOLVEPNP_EPNP, confidence=0.9999,
@@ -242,13 +315,18 @@ class TrackerTorch:
                 val = -1.0
             angle = math.acos((val - 1) * 0.5)
 
-            if self.kf_selection_match_cnt > len(ref_3d_list) or self.kf_selection_angle <= angle or self.kf_selection_shift <= shift:  # Mapping is required
+            if self.kf_selection_match_cnt > len(query_2d_list) or self.kf_selection_angle <= angle or self.kf_selection_shift <= shift:  # Mapping is required
+                relative_pose = torch.eye(4, dtype=torch.float32).cpu()
+                relative_pose[:3, :3] = torch.from_numpy(rot)
+                relative_pose[:3, 3] = torch.from_numpy(tvec).squeeze()
+                relative_pose = torch.inverse(relative_pose)
+
+                cuda_relative_pose = relative_pose.detach().to(self.device)
+
                 print(f"Make KF! {self.prev_kf} -> {self.frame_cnt - 1} | {len(ref_3d_list)} angle: {angle}, shift: {shift}")
                 self.prev_kf = (self.frame_cnt - 1)
-                self.CreateKeyframe(rgb, depth, (current_kp, current_des))
-                relative_pose = [rot, quat, tvec]
-
-                # render_pkg = render(viewpoint_cam, self.gaussian, pipe, bg)
-                return [True, False], [rgb, gray, self.KF_xyz, self.frame_cnt - 1], relative_pose, ref_3d_list, ref_color_list
+                self.CreateKeyframe(rgb, depth, (current_kp, current_des), cuda_relative_pose)
+                return [True, False], [rgb, gray, self.KF_xyz.detach().cpu().numpy(), self.frame_cnt - 1], \
+                    relative_pose, ref_3d_list, ref_color_list
             else:  # Mapping is not required
                 return [False], []
