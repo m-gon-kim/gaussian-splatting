@@ -224,7 +224,7 @@ class GaussianMapper:
         self.viz_full_proj_transform_list.append(full_proj_transform.detach())
         self.viz_world_view_transform_list.append(world_view_transform.detach())
         self.viz_camera_center_list.append(camera_center.detach())
-        # self.fixed_world_view_transform_list
+
 
         with torch.no_grad():
             pose2 = torch.eye(4, dtype=torch.float32, device=self.device)
