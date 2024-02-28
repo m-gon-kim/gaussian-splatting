@@ -43,7 +43,7 @@ def MTF_Mapping(dataset, parameters, tracking_result_q, mapping_result_q):
     while True:
         if not tracking_result_q.empty():
             q_size= tracking_result_q.qsize()
-            print(f"PROCESS: MAPPING Q {q_size}")
+            # print(f"PROCESS: MAPPING Q {q_size}")
             instance = tracking_result_q.get()
             if not instance[0]:  # Abort (System is not awake)
                 print("Mapping Abort")
@@ -54,7 +54,7 @@ def MTF_Mapping(dataset, parameters, tracking_result_q, mapping_result_q):
             mapping_result_q.put([True, mapping_result])
             if mapping_result[0][4]:
                 # loop closing 수행
-                loop_close_result = mapper.CloseLoop(mapping_result[4])
+                loop_close_result = mapper.CloseLoop(mapping_result[4], mapping_result[1][2])
                 mapping_result_q.put([True, loop_close_result])
                 # mapper.PointPtrUpdate()
 
@@ -66,7 +66,7 @@ def GaussianMappingTest(dataset, parameters, mapping_result_q):
     while True:
         if not mapping_result_q.empty():
             q_size = mapping_result_q.qsize()
-            print(f"PROCESS: G-MAPPING Q {q_size}")
+            # print(f"PROCESS: G-MAPPING Q {q_size}")
             instance = mapping_result_q.get()
             if not instance[0]:  # Abort (System is not awake)
                 print("Gaussian Mapping Abort")

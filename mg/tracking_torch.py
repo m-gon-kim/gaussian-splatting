@@ -29,6 +29,7 @@ class TrackerTorch:
         self.orb_nfeatures = parameters["orb_nfeatures"]
         self.depth_crop_near = parameters["depth_crop"]["near"]
         self.depth_crop_far = parameters["depth_crop"]["far"]
+        self.kf_selection_match_cnt = parameters["kf_selection"]["match_cnt"]
         self.kf_selection_angle = parameters["kf_selection"]["angle"]
         self.kf_selection_shift = parameters["kf_selection"]["shift"]
         self.SetORBSettings()
@@ -152,7 +153,7 @@ class TrackerTorch:
         current_kp_cpu = self.orb.convert(orb[0])
 
         match_cnt = 0
-        match_cnt_threshold = 100
+        match_cnt_threshold = self.kf_selection_match_cnt
         for j in matches:
             if j.distance < 40:
                 match_cnt += 1
@@ -205,7 +206,7 @@ class TrackerTorch:
             self.CreateInitalKeyframe(rgb, depth, (current_kp, current_des))
             # 0.0. Status
             # 0.1. First KF
-            return [True, True], [rgb, gray, self.KF_xyz]
+            return [True, True], [rgb, gray, self.KF_xyz, 0]
         else:
             # Perform 2D-2D matching and, get corresponding 3D(xyz) points
             query_2d_list, ref_3d_list, ref_color_list = self.Match2D2D((current_kp, current_des))
@@ -241,14 +242,13 @@ class TrackerTorch:
                 val = -1.0
             angle = math.acos((val - 1) * 0.5)
 
-            if self.kf_selection_angle <= angle or self.kf_selection_shift <= shift:  # Mapping is required
-                # print(f"Make KF! angle: {angle}, shift: {shift}")
-                print(f"Make KF! {self.prev_kf} -> {self.frame_cnt - 1} | {len(ref_3d_list)}")
+            if self.kf_selection_match_cnt > len(ref_3d_list) or self.kf_selection_angle <= angle or self.kf_selection_shift <= shift:  # Mapping is required
+                print(f"Make KF! {self.prev_kf} -> {self.frame_cnt - 1} | {len(ref_3d_list)} angle: {angle}, shift: {shift}")
                 self.prev_kf = (self.frame_cnt - 1)
                 self.CreateKeyframe(rgb, depth, (current_kp, current_des))
                 relative_pose = [rot, quat, tvec]
 
                 # render_pkg = render(viewpoint_cam, self.gaussian, pipe, bg)
-                return [True, False], [rgb, gray, self.KF_xyz], relative_pose, ref_3d_list, ref_color_list
+                return [True, False], [rgb, gray, self.KF_xyz, self.frame_cnt - 1], relative_pose, ref_3d_list, ref_color_list
             else:  # Mapping is not required
                 return [False], []
