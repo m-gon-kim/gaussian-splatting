@@ -661,8 +661,14 @@ class GaussianMapper:
                                        viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
                 img = render_pkg["render"]
                 np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
+
+                window_x = (i % 4) * 640
+                if i > 11:
+                    window_x += (640 *4)
+                window_y = int(i / 4) * 480
                 kf_num = self.SP_KF_num_list[i]
                 cv2.imshow(f"rendered{kf_num}", np_render)
+                cv2.moveWindow(f"rendered{kf_num}", window_x, window_y)
 
             # Render all frames with predicted camera poses
             frame = self.SP_poses.shape[2]-1
