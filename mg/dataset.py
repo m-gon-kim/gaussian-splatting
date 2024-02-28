@@ -44,10 +44,9 @@ class Dataset:
         return dataset
 
     def ReadParameters(self):
-        path = "parameters/" + self.selected_dataset + "/parameter.yml"
-        with open(path, 'r') as file:
+        path = "parameters/" + (self.selected_dataset).lower() + "/parameter.yml"
+        with open(path, 'r', encoding='utf-8') as file:
             self.parameters = yaml.safe_load(file)
-        print(self.parameters)
 
 
     def InitializeDataset(self):
