@@ -23,6 +23,15 @@ class GaussianMapper:
             self.FoVy = None
             self.intr = torch.zeros((3, 3), dtype=torch.float32, device=self.device)
             self.inv_intr = torch.zeros((3, 3), dtype=torch.float32, device=self.device)
+
+            # Wide angle parameters
+            self.wide_ratio = 1.5
+            self.projection_matrix_wide = None
+            self.FoVx_wide = None
+            self.FoVy_wide = None
+            self.intr_wide = torch.zeros((3, 3), dtype=torch.float32, device=self.device)
+            self.inv_intr_wide = torch.zeros((3, 3), dtype=torch.float32, device=self.device)
+
             self.recover = None
             self.uv_mid = None
 
@@ -31,7 +40,6 @@ class GaussianMapper:
         self.Flag_GS_Pause = False
 
         self.Flag_GS_Pause = False
-        print("gs", parameters)
         self.SetIntrinsics(dataset)
         self.insertion_densification_interval = parameters["insertion"]["densification_interval"]
         self.full_optimization_densification_interval = parameters["full_optimization"]["densification_interval"]
@@ -78,6 +86,7 @@ class GaussianMapper:
         self.viz_full_proj_transform_list = []
         self.viz_world_view_transform_list = []
         self.viz_camera_center_list = []
+        self.fixed_world_view_transform_list = []
         self.third_full_proj_transform_list = []
         self.third_world_view_transform = None
         self.third_camera_center = None
@@ -109,6 +118,18 @@ class GaussianMapper:
         self.inv_intr[1][2] = -cy / fy
         self.inv_intr[2][2] = 1
 
+        self.intr_wide[0][0] = fx / self.wide_ratio
+        self.intr_wide[0][2] = cx
+        self.intr_wide[1][1] = fy / self.wide_ratio
+        self.intr_wide[1][2] = cy
+        self.intr_wide[2][2] = 1
+
+        self.inv_intr_wide[0][0] = 1 / (fx / self.wide_ratio)
+        self.inv_intr_wide[0][2] = -cx / (fx / self.wide_ratio)
+        self.inv_intr_wide[1][1] = 1 / (fy / self.wide_ratio)
+        self.inv_intr_wide[1][2] = -cy / (fy / self.wide_ratio)
+        self.inv_intr_wide[2][2] = 1
+
     def SetSPMaskPoints(self):
         with torch.no_grad():
             mid_xyz = torch.zeros((3, 1), dtype=torch.float32, device=self.device)
@@ -124,11 +145,16 @@ class GaussianMapper:
 
         FoVx = 2 * math.atan(640 / (2 * fx))
         FoVy = 2 * math.atan(480 / (2 * fy))
+        FoVx_wide = 2 * math.atan(640 / (2 * fx / self.wide_ratio))
+        FoVy_wide = 2 * math.atan(480 / (2 * fy / self.wide_ratio))
         with torch.no_grad():
             self.FoVx = torch.tensor(FoVx, dtype=torch.float32, device=self.device)
             self.FoVy = torch.tensor(FoVy, dtype=torch.float32, device=self.device)
-
             self.projection_matrix = self.getProjectionMatrix(znear=0.01, zfar=100, fovX=FoVx, fovY=FoVy).transpose(0, 1).type(torch.FloatTensor).to(self.device)
+
+            self.FoVx_wide = torch.tensor(FoVx_wide, dtype=torch.float32, device=self.device)
+            self.FoVy_wide = torch.tensor(FoVy_wide, dtype=torch.float32, device=self.device)
+            self.projection_matrix_wide = self.getProjectionMatrix(znear=0.01, zfar=100, fovX=FoVx_wide, fovY=FoVy_wide).transpose(0, 1).type(torch.FloatTensor).to(self.device)
 
     def getProjectionMatrix(self, znear, zfar, fovX, fovY):
         tanHalfFovY = math.tan((fovY / 2))
@@ -192,7 +218,6 @@ class GaussianMapper:
             camera_center = pose[3, :3].detach()
             world_view_transform = torch.inverse(pose).detach()
             full_proj_transform = torch.matmul(world_view_transform, self.projection_matrix)
-
         # self.viz_full_proj_transform_list.append((world_view_transform.detach().cpu().unsqueeze(0).bmm(
         #     (self.projection_matrix).detach().cpu().unsqueeze(0))).squeeze(0).type(torch.FloatTensor).to(
         #     self.device))
@@ -200,54 +225,24 @@ class GaussianMapper:
         self.viz_world_view_transform_list.append(world_view_transform.detach())
         self.viz_camera_center_list.append(camera_center.detach())
 
-        #
-        with torch.no_grad():
-            pose2 = torch.eye(4, dtype=torch.float32, device=self.device)
-            pose2[2, 3] = 4.8
-            pose2[1, 3] = -3.6
-
-            pose2[0, 0] = -1
-            pose2[1, 1] = 0.5
-            pose2[1, 2] = 0.866
-            pose2[2, 1] = 0.866
-            pose2[2, 2] = -0.5
-
-
-            camera_center2 = pose2.T[3, :3].detach()
-            world_view_transform2 = torch.inverse(pose2).T.detach()
-            full_proj_transform2 = torch.matmul(world_view_transform2, self.projection_matrix)
-            # self.viz_full_proj_transform_list.append((world_view_transform2.detach().cpu().unsqueeze(0).bmm(
-            #     (self.projection_matrix).detach().cpu().unsqueeze(0))).squeeze(0).type(torch.FloatTensor).to(
-            #     self.device))
-        self.viz_full_proj_transform_list.append(full_proj_transform2.detach())
-        self.viz_world_view_transform_list.append(world_view_transform2.detach())
-        self.viz_camera_center_list.append(camera_center2.detach())
-
-        with torch.no_grad():
-            pose = torch.eye(4, dtype=torch.float32, device=self.device)
-            pose[2, 3] = -5
-            pose[1, 3] = -0.5
-            camera_center = pose.T[3, :3].detach()
-            world_view_transform = torch.inverse(pose).T.detach()
-        self.viz_full_proj_transform_list.append((world_view_transform.detach().cpu().unsqueeze(0).bmm(
-            (self.projection_matrix).detach().cpu().unsqueeze(0))).squeeze(0).type(torch.FloatTensor).to(
-            self.device))
-        self.viz_world_view_transform_list.append(world_view_transform.detach())
-        self.viz_camera_center_list.append(camera_center.detach())
 
         with torch.no_grad():
             pose2 = torch.eye(4, dtype=torch.float32, device=self.device)
-            pose2[0, 0] = 1.0
+            x_rot_degree = -30
+            y_rot_degree = 0
+            z_rot_degree = 0
+            x_rot = x_rot_degree * (math.pi / 180)
+            y_rot = y_rot_degree * (math.pi / 180)
+            z_rot = z_rot_degree * (math.pi / 180)
 
-            pose2[1, 1] = 0.0
-            pose2[1, 2] = -1.0
+            x_rot_mat = torch.tensor([[1, 0, 0], [0, math.cos(x_rot), -math.sin(x_rot)], [0, math.sin(x_rot), math.cos(x_rot)]], dtype=torch.float32, device=self.device)
+            y_rot_mat = torch.tensor([[math.cos(y_rot), 0, math.sin(y_rot)], [0, 1, 0], [-math.sin(y_rot), 0, math.cos(y_rot)]], dtype=torch.float32, device=self.device)
+            z_rot_mat = torch.tensor([[math.cos(z_rot), -math.sin(z_rot), 0], [math.sin(z_rot), math.cos(z_rot), 0], [0, 0, 1]], dtype=torch.float32, device=self.device)
+            rot = torch.matmul(torch.matmul(x_rot_mat, y_rot_mat), z_rot_mat)
+            pose2[:3, :3] = rot
 
-            pose2[2, 1] = 1.0
-            pose2[2, 2] = 0.0
-
-            pose2[0, 3] = 1.0
-            pose2[1, 3] = 2.0
-            pose2[2, 3] = 2.0
+            trans = torch.tensor([0.3, -1.5, -2.5], dtype=torch.float32, device=self.device)
+            pose2[:3, 3] = trans
 
             camera_center2 = pose2.T[3, :3].detach()
             world_view_transform2 = torch.inverse(pose2).T.detach()
@@ -262,14 +257,14 @@ class GaussianMapper:
     def SetThirdPersonViewCamera(self, pose):
         with torch.no_grad():
             rel_pose = torch.eye(4, dtype=torch.float32, device=self.device)
-            tvec = torch.tensor([0, 0, -3], dtype=torch.float32, device=self.device)
+            tvec = torch.tensor([0, 0, -1.0], dtype=torch.float32, device=self.device)
             rot = torch.tensor([[1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=torch.float32, device=self.device)
             rel_pose[:3, :3] = rot
             rel_pose[:3, 3] = tvec
             rel_pose = torch.matmul(pose, rel_pose)
             camera_center = rel_pose.T[3, :3].detach()
             world_view_transform = torch.inverse(rel_pose).T.detach()
-            full_proj_transform = torch.matmul(world_view_transform, self.projection_matrix)
+            full_proj_transform = torch.matmul(world_view_transform, self.projection_matrix_wide)
         self.third_world_view_transform = rel_pose.detach()
         self.third_full_proj_transform = full_proj_transform.detach()
         self.third_camera_center = camera_center.detach()
@@ -289,15 +284,13 @@ class GaussianMapper:
                 projected_camera_centers.append(cam_uv[:2])
         return projected_camera_centers
 
-    def CreateCameraWireframePoints(self):
+    def CreateCameraWireframePoints(self, pose):
         with torch.no_grad():
-            pose = self.SP_poses[:, :, -1]
 
             c_depth = 0.0001
             c_width = self.width * c_depth
             c_height = self.height * c_depth
 
-            rel_pose = torch.eye(4, dtype=torch.float32, device=self.device)
             tvec1 = torch.tensor([c_width, c_height, c_depth*400], dtype=torch.float32, device=self.device)
             tvec2 = torch.tensor([-c_width, c_height, c_depth*400], dtype=torch.float32, device=self.device)
             tvec3 = torch.tensor([-c_width, -c_height, c_depth*400], dtype=torch.float32, device=self.device)
@@ -326,32 +319,38 @@ class GaussianMapper:
 
             self.wireframe_camera_positions.append(poses)
 
-    def DrawCameraWireframes(self, img):
+    def DrawCameraWireframes(self, img, tvec, intr):
         with torch.no_grad():
             for i in range(len(self.wireframe_camera_positions)):
                 poses = self.wireframe_camera_positions[i]
                 points = []
+                # Calculate 2D points
                 for p in poses:
-                    pose_4d = torch.cat((p, torch.tensor([1], dtype=torch.float32, device=self.device)))
+                    pose_4d = torch.eye(4, dtype=torch.float32, device=self.device)
+                    pose_4d[:3, 3] = tvec
 
-                    view_space_pos = torch.matmul(torch.inverse(self.third_world_view_transform), pose_4d)
+                    p_4d = torch.cat((p, torch.tensor([1], dtype=torch.float32, device=self.device)))
+                    view_space_pos = torch.matmul(torch.inverse(pose_4d), p_4d)
                     ndc_space_pos = view_space_pos / view_space_pos[3]
-                    cam_uv = torch.matmul(self.intr, ndc_space_pos[:3])
+
+                    cam_uv = torch.matmul(intr, ndc_space_pos[:3])
                     cam_uv = cam_uv / cam_uv[2]
                     points.append(cam_uv[:2])
 
+                # Draw wireframe camera
                 for j in range(len(self.wireframe_camera_index)):
                     point1 = points[self.wireframe_camera_index[j][0]]
                     point2 = points[self.wireframe_camera_index[j][1]]
                     cv2.line(img, (int(point1[0]), int(point1[1])), (int(point2[0]), int(point2[1])), (0, 255, 0), 1)
 
+                # Draw line between current and previous camera
                 if i > 0:
                     l_p1 = points[0]
                     w_l_p2 = self.wireframe_camera_positions[i-1][0]
                     w_l_p2_4d = torch.cat((w_l_p2, torch.tensor([1], dtype=torch.float32, device=self.device)))
-                    view_space_l_p2 = torch.matmul(torch.inverse(self.third_world_view_transform), w_l_p2_4d)
+                    view_space_l_p2 = torch.matmul(torch.inverse(pose_4d), w_l_p2_4d)
                     ndc_space_l_p2 = view_space_l_p2 / view_space_l_p2[3]
-                    l_p2 = torch.matmul(self.intr, ndc_space_l_p2[:3])
+                    l_p2 = torch.matmul(intr, ndc_space_l_p2[:3])
                     l_p2 = l_p2 / l_p2[2]
                     l_p2 = l_p2[:2]
                     cv2.line(img, (int(l_p1[0]), int(l_p1[1])), (int(l_p2[0]), int(l_p2[1])), (0, 0, 255), 1)
@@ -409,9 +408,7 @@ class GaussianMapper:
         # Gaussian
         self.gaussian.InitializeOptimizer()
         self.loss_dict[0] = 1.0
-
-
-
+        self.CreateCameraWireframePoints(pose)
 
     def CreateKeyframe(self, rgb, SP_xyz, pose, KF_num):
         print("KFrame")
@@ -491,6 +488,7 @@ class GaussianMapper:
         # Gaussian
         self.gaussian.InitializeOptimizer()
         self.loss_dict[self.SP_poses.shape[2]-1] = 1.0
+        self.CreateCameraWireframePoints(pose)
 
 
 
@@ -637,7 +635,6 @@ class GaussianMapper:
 
 
     def Visualize(self):
-        # print("Viz len: ", self.SP_poses.shape[2])
         if self.SP_poses.shape[2] > 0:
 
             # Fixed camera position for visualization
@@ -648,62 +645,49 @@ class GaussianMapper:
                 render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform, viz_full_proj_transform,
                                        viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
                 img = render_pkg["render"]  #GRB
-                np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()    #RGB
+                np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy().copy()    #RGB
+                if i == 1:
+                    self.DrawCameraWireframes(np_render, viz_camera_center, self.intr)
                 cv2.imshow(f"start_gs{i}", np_render)
 
             # Render from keyframes
-            for i in range(0, self.SP_poses.shape[2], 1):
-                viz_world_view_transform = self.world_view_transform_list[i]
-                viz_full_proj_transform = self.full_proj_transform_list[i]
-                viz_camera_center = self.camera_center_list[i]
-                render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform,
-                                       viz_full_proj_transform,
-                                       viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
+            for i in range(0, self.SP_poses.shape[2], 3):
+                world_view_transform = self.world_view_transform_list[i]
+                full_proj_transform = self.full_proj_transform_list[i]
+                camera_center = self.camera_center_list[i]
+                render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, world_view_transform,
+                                       full_proj_transform,
+                                       camera_center, self.gaussian, self.pipe, self.background, 1.0)
                 img = render_pkg["render"]
                 np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
-
-                window_x = (i % 4) * 640
-                if i > 11:
-                    window_x += (640 *4)
-                window_y = int(i / 4) * 480
-                kf_num = self.SP_KF_num_list[i]
-                cv2.imshow(f"rendered{kf_num}", np_render)
-                cv2.moveWindow(f"rendered{kf_num}", window_x, window_y)
+                cv2.imshow(f"rendered{i*5}", np_render)
 
             # Render all frames with predicted camera poses
             frame = self.SP_poses.shape[2]-1
-            viz_world_view_transform = self.world_view_transform_list[frame]
-            viz_full_proj_transform = self.full_proj_transform_list[frame]
-            viz_camera_center = self.camera_center_list[frame]
+            all_world_view_transform = self.world_view_transform_list[frame]
+            all_full_proj_transform = self.full_proj_transform_list[frame]
+            all_camera_center = self.camera_center_list[frame]
 
             self.SetThirdPersonViewCamera(self.SP_poses[:, :, frame])
             third_world_view_transform = self.third_world_view_transform
             third_full_proj_transform = self.third_full_proj_transform
             third_w_center = self.third_camera_center
 
-            projected_camera_centers = self.ProjectThirdPersonViewCameraPositions()
-
-            render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform, viz_full_proj_transform,
-                                   viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
+            render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, all_world_view_transform, all_full_proj_transform,
+                                   all_camera_center, self.gaussian, self.pipe, self.background, 1.0)
             img = render_pkg["render"]
             # print(img)
             np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
             cv2.imshow(f"sw", np_render)
 
-            render_third_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, third_world_view_transform, third_full_proj_transform,
+            render_third_pkg = mg_render(self.FoVx_wide, self.FoVy_wide, self.height, self.width, third_world_view_transform, third_full_proj_transform,
                                       third_w_center, self.gaussian, self.pipe, self.background, 1.0)
             img_third = render_third_pkg["render"]
             # print(img)
             np_render_third = torch.permute(img_third, (1, 2, 0)).detach().cpu().numpy().copy()
 
-            # Draw wireframe camera positions with opencv
-            for point in projected_camera_centers:
-                # img_center = np.array([self.width // 2, self.height // 2])
-                projected_camera_center = (int(point[0]), int(point[1]))
-                cv2.circle(np_render_third, projected_camera_center, 2, (0, 0, 255), -1)
-
-            self.CreateCameraWireframePoints()
-            self.DrawCameraWireframes(np_render_third)
+            # third_pos = self.SP_poses[:, :, frame][:3, 3]
+            self.DrawCameraWireframes(np_render_third, third_w_center, self.intr_wide)
 
             cv2.imshow(f"third", np_render_third)
 
@@ -742,6 +726,7 @@ class GaussianMapper:
                     SP_poses = BA_results.detach().to(self.device)  # torch
                     self.SP_poses[:, :, :SP_poses.shape[2]] = SP_poses
 
+                    self.wireframe_camera_positions = []
                     for i in range(SP_poses.shape[2]):
                         pose = SP_poses[:, :, i]
                         # pre-compute poses
@@ -752,6 +737,7 @@ class GaussianMapper:
                         self.full_proj_transform_list[i] = full_proj_transform.detach()
                         self.world_view_transform_list[i] = world_view_transform.detach()
                         self.camera_center_list[i] = camera_center.detach()
+                        self.CreateCameraWireframePoints(pose)
 
                 self.FullOptimizeGaussian(status[3])
 
@@ -762,6 +748,7 @@ class GaussianMapper:
                 SP_poses = BA_results.detach().to(self.device)  # torch
                 self.SP_poses[:, :, :SP_poses.shape[2]] = SP_poses
 
+                self.wireframe_camera_positions = []
                 for i in range(SP_poses.shape[2]):
                     pose = SP_poses[:, :, i]
                     # pre-compute poses
@@ -772,6 +759,7 @@ class GaussianMapper:
                     self.full_proj_transform_list[i] = full_proj_transform.detach()
                     self.world_view_transform_list[i] = world_view_transform.detach()
                     self.camera_center_list[i] = camera_center.detach()
+                    self.CreateCameraWireframePoints(pose)
 
             self.FullOptimizeGaussian(status[3])
 
