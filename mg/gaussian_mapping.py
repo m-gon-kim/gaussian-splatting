@@ -651,16 +651,23 @@ class GaussianMapper:
                 cv2.imshow(f"start_gs{i}", np_render)
 
             # Render from keyframes
-            for i in range(0, self.SP_poses.shape[2], 3):
-                world_view_transform = self.world_view_transform_list[i]
-                full_proj_transform = self.full_proj_transform_list[i]
-                camera_center = self.camera_center_list[i]
-                render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, world_view_transform,
-                                       full_proj_transform,
-                                       camera_center, self.gaussian, self.pipe, self.background, 1.0)
+            for i in range(0, self.SP_poses.shape[2], 1):
+                viz_world_view_transform = self.world_view_transform_list[i]
+                viz_full_proj_transform = self.full_proj_transform_list[i]
+                viz_camera_center = self.camera_center_list[i]
+                render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform,
+                                       viz_full_proj_transform,
+                                       viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
                 img = render_pkg["render"]
                 np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
-                cv2.imshow(f"rendered{i*5}", np_render)
+
+                window_x = (i % 4) * 640
+                if i > 11:
+                    window_x += (640 * 4)
+                window_y = int(i / 4) * 480
+                kf_num = self.SP_KF_num_list[i]
+                cv2.imshow(f"rendered{kf_num}", np_render)
+                cv2.moveWindow(f"rendered{kf_num}", window_x, window_y)
 
             # Render all frames with predicted camera poses
             frame = self.SP_poses.shape[2]-1
