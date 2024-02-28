@@ -15,13 +15,13 @@ class ReplicaDataset:
     def get_rgb_list(self):
         rgb_folder = f'{self.path}rgb/'
         rgb_files = [rgb_folder + file for file in os.listdir(rgb_folder)]
-
+        rgb_files = sorted(rgb_files, key=lambda x: int(x.split('rgb_')[-1].split('.')[0]))
         return rgb_files
 
     def get_depth_list(self):
         depth_folder = f'{self.path}depth/'
         depth_files = [depth_folder + file for file in os.listdir(depth_folder)]
-
+        depth_files = sorted(depth_files, key=lambda x: int(x.split('depth_')[-1].split('.')[0]))
         return depth_files
 
     def get_data_len(self):
