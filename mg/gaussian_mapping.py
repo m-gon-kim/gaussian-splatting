@@ -411,7 +411,6 @@ class GaussianMapper:
         self.CreateCameraWireframePoints(pose)
 
     def CreateKeyframe(self, rgb, SP_xyz, pose, KF_num):
-        print("KFrame")
         w_padding = 100
         h_padding = 50
 
@@ -662,9 +661,10 @@ class GaussianMapper:
                 np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
 
                 window_x = (i % 4) * 640
+                window_y = int(i / 4) * 480
                 if i > 11:
                     window_x += (640 * 4)
-                window_y = int(i / 4) * 480
+                    window_y = int((i-12) / 4) * 480
                 kf_num = self.SP_KF_num_list[i]
                 cv2.imshow(f"rendered{kf_num}", np_render)
                 cv2.moveWindow(f"rendered{kf_num}", window_x, window_y)
