@@ -42,6 +42,10 @@ class MTFMapper:
         self.superpixel_kf_selection_angle = parameters["superpixel_kf_selection"]["angle"]
         self.superpixel_kf_selection_shift = parameters["superpixel_kf_selection"]["shift"]
 
+        self.loop_closing_hard_distance = parameters["loop_closing_hard"]["distance"]
+        self.loop_closing_hard_pnp_thrshold = parameters["loop_closing_hard"]["pnp_threshold"]
+        self.loop_closing_hard_near = parameters["loop_closing_hard"]["near"]
+        self.loop_closing_hard_far = parameters["loop_closing_hard"]["far"]
         self.loop_closing_pose_threshold_angle = parameters["loop_closing_pose_threshold"]["angle"]
         self.loop_closing_pose_threshold_shift = parameters["loop_closing_pose_threshold"]["shift"]
 
@@ -572,7 +576,7 @@ class MTFMapper:
         matches = sorted(matches, key=lambda x: x.distance)
 
         for pair in matches:
-            if pair.distance < 40:
+            if pair.distance < self.loop_closing_hard_distance:
                 ref_u, ref_v = ref_kp_cpu[pair.trainIdx].pt
                 ref_u = int(ref_u)
                 ref_v = int(ref_v)
@@ -589,17 +593,17 @@ class MTFMapper:
             else:
                 break
         print("HARD CLOSE CNT", current_idx, ref_idx, len(pnp_ref_3d_list))
-        if len(pnp_ref_3d_list) <30:
+        if len(pnp_ref_3d_list) < self.loop_closing_hard_pnp_thrshold:
             return False, None
         ref_3d_list = np.array(pnp_ref_3d_list)
         query_2d_list = np.array(pnp_query_2d_list)
 
         # Crop near points (for PNP Solver)
-        z_mask_1 = ref_3d_list[:, 2] > 0.1
+        z_mask_1 = ref_3d_list[:, 2] > self.loop_closing_hard_near
         ref_3d_list = ref_3d_list[z_mask_1]
         query_2d_list = query_2d_list[z_mask_1]
         # Crop far points (for PNP Solver)
-        z_mask_2 = ref_3d_list[:, 2] <= 10.0
+        z_mask_2 = ref_3d_list[:, 2] <= self.loop_closing_hard_far
         ref_3d_list = ref_3d_list[z_mask_2]
         query_2d_list = query_2d_list[z_mask_2]
         #
@@ -748,7 +752,8 @@ class MTFMapper:
             if uv_cnt == 0:
                 continue
             loss_avg = loss_total / uv_cnt
-            # print('loss total iteration', iteration, loss_avg)
+            if iteration % int(iteration_num/10) == 0:
+                print('loss total iteration', iteration, "/", iteration_num, " loss: ", loss_avg)
 
             loss_avg.backward(retain_graph=True)
             optimizer.step()
@@ -1083,7 +1088,7 @@ class MTFMapper:
         GKF_poses = torch.index_select(self.KF_poses, 2, self.GKF_index_list)
         return [False, False, True, False], [], [], GKF_poses.detach().cpu()
 
-    def CloseLoop(self, loop_list):
+    def CloseLoop(self, loop_list, KF_num):
         Flag_GMapping = False
         Flag_First_KF = False
         Flag_BA = True
@@ -1112,7 +1117,7 @@ class MTFMapper:
                 KF_xyz = self.KF_xyz_list[-1]
 
                 return [Flag_GMapping, Flag_First_KF, Flag_BA, Flag_densification, Flag_GS_PAUSE], \
-                    [rgb_img, KF_xyz], self.KF_poses[:, :, -1].detach().cpu(), GKF_poses.detach().cpu()
+                    [rgb_img, KF_xyz, KF_num], self.KF_poses[:, :, -1].detach().cpu(), GKF_poses.detach().cpu()
             else:
                 GKF_poses = torch.index_select(self.KF_poses, 2, self.GKF_index_list)
                 return [Flag_GMapping, Flag_First_KF, Flag_BA, Flag_densification, Flag_GS_PAUSE], \
@@ -1136,6 +1141,7 @@ class MTFMapper:
         rgb_img = sensor[0]
         gray_img = sensor[1]
         KF_xyz = sensor[2]
+        KF_num = sensor[3]
 
         self.Current_gray_gpuMat.upload(gray_img)
         current_kp, current_des = self.orb_cuda.detectAndComputeAsync(self.Current_gray_gpuMat, None)
@@ -1164,7 +1170,7 @@ class MTFMapper:
                 self.CreateInitialPointClouds(self.KF_poses[:, :, -1].detach(), KF_xyz, rgb_img, (current_kp, current_des))
                 self.GKF_index_list = torch.cat((self.GKF_index_list, torch.tensor([0], dtype=torch.int32, device=self.device)), dim=0)
 
-            return [Flag_GMapping, Flag_First_KF, Flag_BA, Flag_densification, Flag_GS_PAUSE], [rgb_img, KF_xyz], \
+            return [Flag_GMapping, Flag_First_KF, Flag_BA, Flag_densification, Flag_GS_PAUSE], [rgb_img, KF_xyz, KF_num], \
                 torch.eye(4, dtype=torch.float32).cpu()
 
         else:  # Not first KF
@@ -1209,7 +1215,7 @@ class MTFMapper:
 
                         self.ProjectMapToFrame(loop_pose.detach(),(current_kp, current_des), KF_xyz, rgb_img)
                         # 우선 아래를 Return해서, Guassian Splatting을 Pause한다.
-                        return [Flag_GMapping, Flag_First_KF, Flag_BA, Flag_densification, Flag_GS_PAUSE], [], [], [], loop_list.copy()
+                        return [Flag_GMapping, Flag_First_KF, Flag_BA, Flag_densification, Flag_GS_PAUSE], [[],[], KF_num], [], [], loop_list.copy()
                     else:
                         Current_pose = loop_pose
             # Loop 가 아닌 경우 아래를 수행한다.
@@ -1227,7 +1233,7 @@ class MTFMapper:
                 Flag_GMapping = True
 
                 return [Flag_GMapping, Flag_First_KF, Flag_BA, Flag_densification, Flag_GS_PAUSE], \
-                    [rgb_img, KF_xyz], self.KF_poses[:, :, -1].detach().cpu(), GKF_poses.detach().cpu()
+                    [rgb_img, KF_xyz, KF_num], self.KF_poses[:, :, -1].detach().cpu(), GKF_poses.detach().cpu()
             else:
                 # GKF_poses = torch.index_select(self.KF_poses, 2, self.GKF_index_list)
                 return [Flag_GMapping, Flag_First_KF, Flag_BA, Flag_densification, Flag_GS_PAUSE], \

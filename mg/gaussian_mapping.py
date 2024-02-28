@@ -46,6 +46,7 @@ class GaussianMapper:
         self.SP_img_gt_list = []
         self.SP_xyz_list = []  # Converted from Depth map
         self.SP_superpixel_list = []
+        self.SP_KF_num_list = []
         self.iteration_frame = []
 
         with torch.no_grad():
@@ -357,7 +358,7 @@ class GaussianMapper:
 
         return img
 
-    def CreateInitialKeyframe(self, rgb, SP_xyz, pose):
+    def CreateInitialKeyframe(self, rgb, SP_xyz, pose, KF_num):
         with torch.no_grad():
             rgb_torch = torch.from_numpy(rgb).to(self.device)
             img_gt = torch.permute(rgb_torch.type(torch.FloatTensor), (2, 0, 1)).to(self.device) / 255.0
@@ -400,6 +401,7 @@ class GaussianMapper:
         self.world_view_transform_list.append(world_view_transform.detach())
         self.camera_center_list.append(camera_center.detach())
         self.iteration_frame.append(0)
+        self.SP_KF_num_list.append(KF_num)
         del full_proj_transform
         del world_view_transform
         del camera_center
@@ -411,7 +413,7 @@ class GaussianMapper:
 
 
 
-    def CreateKeyframe(self, rgb, SP_xyz, pose):
+    def CreateKeyframe(self, rgb, SP_xyz, pose, KF_num):
         print("KFrame")
         w_padding = 100
         h_padding = 50
@@ -484,6 +486,7 @@ class GaussianMapper:
         self.world_view_transform_list.append(world_view_transform.detach())
         self.camera_center_list.append(camera_center.detach())
         self.iteration_frame.append(0)
+        self.SP_KF_num_list.append(KF_num)
 
         # Gaussian
         self.gaussian.InitializeOptimizer()
@@ -649,7 +652,7 @@ class GaussianMapper:
                 cv2.imshow(f"start_gs{i}", np_render)
 
             # Render from keyframes
-            for i in range(0, self.SP_poses.shape[2], 2):
+            for i in range(0, self.SP_poses.shape[2], 1):
                 viz_world_view_transform = self.world_view_transform_list[i]
                 viz_full_proj_transform = self.full_proj_transform_list[i]
                 viz_camera_center = self.camera_center_list[i]
@@ -658,7 +661,8 @@ class GaussianMapper:
                                        viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
                 img = render_pkg["render"]
                 np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
-                cv2.imshow(f"rendered{int(i*10 / 2)}", np_render)
+                kf_num = self.SP_KF_num_list[i]
+                cv2.imshow(f"rendered{kf_num}", np_render)
 
             # Render all frames with predicted camera poses
             frame = self.SP_poses.shape[2]-1
@@ -714,15 +718,16 @@ class GaussianMapper:
             sensor = mapping_result[1]
             rgb = sensor[0]
             SP_xyz = sensor[1]
+            KF_num = sensor[2]
             with torch.no_grad():
                 xyz_t = torch.from_numpy(SP_xyz).to(self.device)
                 pose = mapping_result[2].to(self.device)  # torch.tensor
 
             if status[0] and status[1] :  # First KF
-                self.CreateInitialKeyframe(rgb, xyz_t, pose)  # rgb must be numpy (Super pixel)
+                self.CreateInitialKeyframe(rgb, xyz_t, pose, KF_num)  # rgb must be numpy (Super pixel)
                 self.getNerfppNorm(pose)
             elif status[0] and not (status[1]):  # Not First Frame
-                self.CreateKeyframe(rgb, xyz_t, pose)
+                self.CreateKeyframe(rgb, xyz_t, pose, KF_num)
                 self.getNerfppNorm(pose)
 
             if status[2]: # BA
