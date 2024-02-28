@@ -749,7 +749,6 @@ class GaussianMapper:
                 self.SP_poses[:, :, :SP_poses.shape[2]] = SP_poses
 
                 self.wireframe_camera_positions = []
-
                 for i in range(SP_poses.shape[2]):
                     pose = SP_poses[:, :, i]
                     # pre-compute poses
