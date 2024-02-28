@@ -1,5 +1,4 @@
 dataset: 'replica'
-
 tracking:
   orb_nfeatures: 1000
   # depth 맵에서 값을 crop하는 범위
@@ -12,6 +11,7 @@ tracking:
   # 값이 너무 작으면, 과도하게 많은 keyframe이 생겨, loop closing이 잘 안됌.
   # 값이 너무 크면, 이전 keyframe과의 ORB매칭이 실패함
   kf_selection:
+    match_cnt: 100  # match 갯수가 적으면 KF로 등록한다.
     angle: 0.1
     shift: 0.3
 
@@ -26,25 +26,31 @@ mapping:
     # projection한 결과 uv좌표의 차이가 diff pixel보다 크면 crop
     project_map_to_frame:
       near: 0.01
-      far: 5.0
+      far: 10.0
       padding: 200
       distance: 50
-      diff: 200
+      diff: 100
     # loop 탐지 시, update된 pose에서 mappoint를 keyframe에 projection할 때 crop 범위
     project_map_to_frame_loop:
       near: 0.01
-      far: 5.0
-      padding: 50
+      far: 10.0
+      padding: 100
       distance: 50
       diff: 100
   # Gaussian Splatting keyframe 선택 기준.
   superpixel_kf_selection:
     angle: 0.5
     shift: 0.5
+  # loop 탐지 시, BA 돌리기 전 최근 frame 들을 pnpsolver를 사용해 강제로 끌어다 놓는다. (BA에 init guess로 pose를 주기 위해)
+  loop_closing_hard:
+    distance: 50
+    pnp_threshold: 10  # match 갯수가 적으면 pnp solver를 돌리지 않음
+    near: 0.01
+    far: 10.0
   # loop 탐지 시, update된 pose가, initial pose와 크게 다르지 않으면 loop closing하지 않는다.
   loop_closing_pose_threshold:
-    angle: 0.2
-    shift: 0.2
+    angle: 0.1
+    shift: 0.3
   # Loop closing 시, BA iteration 횟수, 3차원 point의 lr, keyfram pose의 lr
   loop_ba:
     iteration: 100
@@ -54,7 +60,7 @@ mapping:
 gaussian:
   # Superpixel생성 시 parameter
   superpixel_creation:
-    region_size: 16
+    region_size: 32
     ruler: 100
   # Gaussian frame이 생성되면 gaussian을 증폭시키는 frame interval
   insertion:
