@@ -723,9 +723,12 @@ class GaussianMapper:
             if status[0] and status[1] :  # First KF
                 self.CreateInitialKeyframe(rgb, xyz_t, pose, KF_num)  # rgb must be numpy (Super pixel)
                 self.getNerfppNorm(pose)
+                self.InsertionOptimize()
             elif status[0] and not (status[1]):  # Not First Frame
                 self.CreateKeyframe(rgb, xyz_t, pose, KF_num)
                 self.getNerfppNorm(pose)
+                self.InsertionOptimize()
+
 
             if status[2]: # BA
                 with torch.no_grad():
