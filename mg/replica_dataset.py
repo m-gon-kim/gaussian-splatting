@@ -2,7 +2,7 @@ import cv2
 import os
 import numpy as np
 
-class ReplicaDataset:
+class ReplicaDataset():
     def __init__(self):
         self.path = ""
         # self.path = "C:/mg/dataset/Replica/Replica_Dataset/office_0/Sequence_1/"
@@ -30,6 +30,23 @@ class ReplicaDataset:
         assert len(rgb_list) == len(depth_list), "Number of files in depth and RGB folders must be the same"
         data_len = len(rgb_list)
         return data_len
+
+    def read_matrices(self):
+        matrices_path = f'{self.path}traj_w_c.txt'
+        matrices = []
+        with open(matrices_path, 'r') as file:
+            for line in file:
+                matrix = np.array([np.float32(x) for x in line.split()])
+                matrices.append(matrix.reshape(4, 4))
+        return matrices
+
+    def get_relative_poses(self):
+        matrices = self.read_matrices()
+        relative_poses = [np.identity(4)]
+        for i in range(1, len(matrices)):
+            relative_pose = np.linalg.inv(matrices[0]) @ matrices[i]  # Relative pose calculation
+            relative_poses.append(relative_pose)
+        return relative_poses
 
     def InitializeDataset(self):
         rgb_list = self.get_rgb_list()
@@ -69,5 +86,5 @@ class ReplicaDataset:
         # rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
         gray = cv2.imread(f'{self.path}pair/gray/{file_name}', cv2.IMREAD_GRAYSCALE)
         d = cv2.imread(f'{self.path}pair/depth/{d_file_name}', cv2.IMREAD_UNCHANGED)
-
-        return rgb, gray, d
+        pose = self.get_relative_poses()
+        return rgb, gray, d, pose

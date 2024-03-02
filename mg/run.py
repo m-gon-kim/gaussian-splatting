@@ -14,8 +14,8 @@ def PlayDataset(dataset, img_pair_q):
     cnt = dataset.get_data_len()
     awake = True
     for index in range(cnt):
-        rgb, gray, d = dataset.ReturnData(index + begin_index)
-        img_pair_q.put([awake, [rgb, gray, d]])
+        rgb, gray, d, pose = dataset.ReturnData(index + begin_index)
+        img_pair_q.put([awake, [rgb, gray, d, pose]])
 
 def TrackingTorch(dataset, parameters, img_pair_q, tracking_result_q):
     tracker = TrackerTorch(dataset, parameters)
