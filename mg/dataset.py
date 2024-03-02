@@ -41,6 +41,7 @@ class Dataset:
         dataset.path = self.path_dict.get(self.selected_dataset, self.default_dataset_path)
         if isinstance(dataset, ScannetDataset):
             dataset.initialize_info()
+        dataset.relative_poses = dataset.get_relative_poses()
         return dataset
 
     def ReadParameters(self):

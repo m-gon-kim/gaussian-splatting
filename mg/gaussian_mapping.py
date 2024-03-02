@@ -637,9 +637,9 @@ class GaussianMapper:
         if self.SP_poses.shape[2] > 0:
             # Fixed camera position for visualization
             # Render from keyframes
-            for j in range(0, self.SP_poses.shape[2] * 8, 20):
-                idx = int(j/20)
-                i = int(j / 8)
+            for j in range(0, self.SP_poses.shape[2], 1):
+                idx = j
+                i = j
                 viz_world_view_transform = self.world_view_transform_list[i]
                 viz_full_proj_transform = self.full_proj_transform_list[i]
                 viz_camera_center = self.camera_center_list[i]

@@ -6,6 +6,7 @@ import numpy as np
 class ScannetDataset():
     def __init__(self):
         self.path = ""
+        self.relative_poses = []
 
         # self.img_pair = []
         # self.rgb_list = []
@@ -66,7 +67,7 @@ class ScannetDataset():
         matrices = []
         for matrix_file in file_list:
             with open(matrix_file, 'r') as file:
-                matrix = np.array([list(map(float, line.strip().split())) for line in file])
+                matrix = np.array([list(map(np.float32, line.strip().split())) for line in file])
                 matrices.append(matrix)
         return matrices
 
@@ -115,5 +116,5 @@ class ScannetDataset():
         # rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
         gray = cv2.imread(f'{self.path}pair/gray/{file_name}', cv2.IMREAD_GRAYSCALE)
         d = cv2.imread(f'{self.path}pair/depth/{d_file_name}', cv2.IMREAD_UNCHANGED)
-        pose = self.get_relative_poses()
+        pose = self.relative_poses[index - 1]
         return rgb, gray, d, pose

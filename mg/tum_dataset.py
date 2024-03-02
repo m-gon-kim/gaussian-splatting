@@ -6,6 +6,8 @@ import utility
 class TumDataset():
     def __init__(self):
         self.path = ""
+        self.relative_poses = []
+
         # self.img_pair = []
         # self.rgb_list = []
         # self.gray_list = []
@@ -51,7 +53,7 @@ class TumDataset():
                 line = line.rstrip()
                 if line.strip() == '':
                     pass
-                pose = list(map(float, line.split(' ')))
+                pose = list(map(np.float32, line.split(' ')))
                 matrix = np.eye(4)
                 matrix[:3, :3] = utility.qvec2rotmat(pose[3:])
                 matrix[:3, 3] = pose[:3]
@@ -140,5 +142,5 @@ class TumDataset():
         # rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
         gray = cv2.imread(f'{self.path}pair/gray/{file_name}', cv2.IMREAD_GRAYSCALE)
         d = cv2.imread(f'{self.path}pair/depth/{d_file_name}', cv2.IMREAD_UNCHANGED)
-        pose = self.get_relative_poses()
+        pose = self.relative_poses[index - 1]
         return rgb, gray, d, pose
