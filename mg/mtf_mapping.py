@@ -840,6 +840,177 @@ class MTFMapper:
         pointclouds_param = nn.Parameter(self.pointclouds.detach()[:3, :])
 
         # Pose Params
+        yaw_angle = torch.zeros(self.KF_poses.shape[2]).to(self.device).requires_grad_(True)
+        pitch_angle = torch.zeros(self.KF_poses.shape[2]).to(self.device).requires_grad_(True)
+        roll_angle = torch.zeros(self.KF_poses.shape[2]).to(self.device).requires_grad_(True)
+        tvec = torch.zeros((3, self.KF_poses.shape[2])).to(self.device).requires_grad_(True)
+
+        pose_mask = torch.zeros(self.KF_poses.shape[2], dtype=torch.bool).to(self.device)
+        update_poses_indices = torch.from_numpy(np.array(covis_list)).to(self.device)
+        pose_mask[update_poses_indices[:]] = True
+        pose_mask[current_idx] = True
+        pose_mask[covis_list[0]] = False
+
+
+
+        with torch.no_grad():
+            yaw_angle[~pose_mask].requires_grad_(False)
+            pitch_angle[~pose_mask].requires_grad_(False)
+            roll_angle[~pose_mask].requires_grad_(False)
+            tvec[:, ~pose_mask].requires_grad_(False)
+        l = [
+            {'params': [pointclouds_param], 'lr': 0.01, "name": "pointclouds"},
+            {'params': [yaw_angle], 'lr': 0.01, "name": "yaw"},
+            {'params': [pitch_angle], 'lr': 0.01, "name": "pitch"},
+            {'params': [roll_angle], 'lr': 0.001, "name": "roll"},
+            {'params': [tvec], 'lr': 0.01, "name": "tvec"}
+        ]
+
+        print(yaw_angle.is_leaf)
+        print(pitch_angle.is_leaf)
+        print(roll_angle.is_leaf)
+        print(tvec.is_leaf)
+
+        optimizer = torch.optim.Adam(l, lr=0.01)
+
+        for iteration in range(iteration_num):
+            uv_cnt = 0
+            loss_total = 0.0
+            loss_max = 0
+
+            yaw_angle.data = torch.clamp(yaw_angle.data, -math.pi, math.pi)
+            pitch_angle.data = torch.clamp(pitch_angle.data, -math.pi, math.pi)
+            roll_angle.data = torch.clamp(roll_angle.data, -math.pi, math.pi)
+
+            R_yaw = torch.eye(3).unsqueeze(2).repeat(1, 1, self.KF_poses.shape[2])
+            R_yaw[0, 0, :] = torch.cos(yaw_angle)
+            R_yaw[0, 1, :] = - torch.sin(yaw_angle)
+            R_yaw[1, 0, :] = torch.sin(yaw_angle)
+            R_yaw[1, 1, :] = torch.cos(yaw_angle)
+
+            R_pitch = torch.eye(3).unsqueeze(2).repeat(1, 1, self.KF_poses.shape[2])
+            R_pitch[0, 0, :] = torch.cos(pitch_angle)
+            R_pitch[0, 2, :] = torch.sin(pitch_angle)
+            R_pitch[2, 0, :] = - torch.sin(pitch_angle)
+            R_pitch[2, 2, :] = torch.cos(pitch_angle)
+
+            R_roll = torch.eye(3).unsqueeze(2).repeat(1, 1, self.KF_poses.shape[2])
+            R_roll[1, 1, :] = torch.cos(roll_angle)
+            R_roll[1, 2, :] = - torch.sin(roll_angle)
+            R_roll[2, 1, :] = torch.sin(roll_angle)
+            R_roll[2, 2, :] = torch.cos(roll_angle)
+
+            R_yaw = R_yaw.permute(2, 0, 1)
+            R_pitch = R_pitch.permute(2, 0, 1)
+            R_roll = R_roll.permute(2, 0, 1)
+
+            R = torch.matmul(torch.matmul(R_yaw, R_pitch), R_roll)
+            R = R.permute(1, 2, 0)
+
+
+            # Construct the pose matrix
+            rel_pose = torch.eye(4).unsqueeze(2).repeat(1, 1, self.KF_poses.shape[2]).to(self.device)  # Identity matrix
+            rel_pose[:3, :3, :] = R  # Assign the rotation matrix
+            rel_pose[:3, 3, :] = tvec  # Assign the translation vector
+
+
+
+
+            for i, kf_idx in enumerate(covis_list):
+                keypoints = self.KF_kp_list[kf_idx].detach()
+
+                index_2D_3D = index_2D_3D_all[kf_idx].detach()  # 1000
+                pointcloud_indice = self.pointclouds_ptr[0, index_2D_3D[:]]  # 1000
+                pointcloud_seen_from_kf = pointclouds_param[:, pointcloud_indice[:]]
+                pointclouds_cntr = pointclouds[6, pointcloud_indice[:]]
+                cntr_mask = pointclouds_cntr[:] > 3  # 1000
+
+                pointcloud_seen_from_kf_ctr = pointcloud_seen_from_kf[:, cntr_mask]
+                pointcloud_seen_from_kf_ctr = torch.cat((pointcloud_seen_from_kf_ctr,
+                                                         torch.ones((1, pointcloud_seen_from_kf_ctr.shape[1])).to(self.device)), dim=0)
+                keypoints = keypoints[:, cntr_mask]
+                pose = torch.matmul(self.KF_poses[:, :, kf_idx], rel_pose[:, :, kf_idx])
+                pose = pose/pose[3, 3]
+
+                world_to_kf = torch.inverse(pose)
+
+                cam_xyz = torch.matmul(world_to_kf, pointcloud_seen_from_kf_ctr)[:3, :]
+                cam_uv = torch.matmul(self.intr, cam_xyz)
+                mask = cam_uv[2, :].ne(0)
+                cam_uv_mask = cam_uv[:, mask]
+                cam_uv_mask = cam_uv_mask / cam_uv_mask[2, :]  # projection 한 uv
+                keypoints = keypoints[:, mask]
+
+                loss = torch.norm((keypoints - cam_uv_mask[:2, :]), dim=0)
+                kf_loss = float(torch.sum(loss)) / float(keypoints.shape[1])
+                if loss_max < kf_loss:
+                    loss_max = kf_loss
+                loss_total += torch.sum(loss)
+                uv_cnt += (keypoints.shape[1])
+            if uv_cnt == 0:
+                continue
+            loss_avg = loss_total / uv_cnt
+            if iteration % int(iteration_num/10) == 0:
+                print('loss total iteration', iteration, "/", iteration_num, " loss: ", loss_avg)
+
+            optimizer.zero_grad(set_to_none=True)
+            loss_avg.backward(retain_graph=True)
+            optimizer.step()
+
+        R_yaw = torch.eye(3).unsqueeze(2).repeat(1, 1, self.KF_poses.shape[2])
+        R_yaw[0, 0, :] = torch.cos(yaw_angle)
+        R_yaw[0, 1, :] = - torch.sin(yaw_angle)
+        R_yaw[1, 0, :] = torch.sin(yaw_angle)
+        R_yaw[1, 1, :] = torch.cos(yaw_angle)
+
+        R_pitch = torch.eye(3).unsqueeze(2).repeat(1, 1, self.KF_poses.shape[2])
+        R_pitch[0, 0, :] = torch.cos(pitch_angle)
+        R_pitch[0, 2, :] = torch.sin(pitch_angle)
+        R_pitch[2, 0, :] = - torch.sin(pitch_angle)
+        R_pitch[2, 2, :] = torch.cos(pitch_angle)
+
+        R_roll = torch.eye(3).unsqueeze(2).repeat(1, 1, self.KF_poses.shape[2])
+        R_roll[1, 1, :] = torch.cos(roll_angle)
+        R_roll[1, 2, :] = - torch.sin(roll_angle)
+        R_roll[2, 1, :] = torch.sin(roll_angle)
+        R_roll[2, 2, :] = torch.cos(roll_angle)
+
+        R_yaw = R_yaw.permute(2, 0, 1)
+        R_pitch = R_pitch.permute(2, 0, 1)
+        R_roll = R_roll.permute(2, 0, 1)
+
+        R = torch.matmul(torch.matmul(R_yaw, R_pitch), R_roll)
+        R = R.permute(1, 2, 0)
+
+        # Construct the pose matrix
+        rel_pose = torch.eye(4).unsqueeze(2).repeat(1, 1, self.KF_poses.shape[2]).to(self.device)  # Identity matrix
+        rel_pose[:3, :3, :] = R  # Assign the rotation matrix
+        rel_pose[:3, 3, :] = tvec  # Assign the translation vector
+
+
+        self.pointclouds[:3, :] = pointclouds_param[:3, :].detach()
+        prev_pose = self.KF_poses[:, :, :].detach().permute(2, 0, 1)
+        rel_pose = rel_pose.permute(2, 0, 1)
+        updated_pose = torch.matmul(prev_pose, rel_pose)
+        updated_pose = updated_pose.permute(1, 2, 0)
+
+        self.KF_poses[:, :, :] = updated_pose.detach()
+
+        GKF_poses = torch.index_select(self.KF_poses, 2, self.GKF_index_list)
+        self.GKF_pose = GKF_poses[:, :, -1].detach()
+
+    def LocalBA2(self, current_idx, iteration_num, point_rate, pose_rate):
+        index_2D_3D_all = self.index_2D_3D.copy()
+        covis_list = self.KF_covis_list[current_idx].copy()
+        if len(covis_list) <3:
+            return
+        covis_list.sort()
+
+        # Pointcloud Params
+        pointclouds = self.pointclouds.detach()
+        pointclouds_param = nn.Parameter(self.pointclouds.detach()[:3, :])
+
+        # Pose Params
         poses = self.KF_poses.detach()
         pose_mask = torch.zeros(poses.shape[2], dtype=torch.bool).to(self.device)
         update_poses_indices = torch.from_numpy(np.array(covis_list)).to(self.device)
@@ -848,7 +1019,7 @@ class MTFMapper:
         pose_mask[covis_list[0]] = False
 
         pose_combined = self.KF_poses.detach()[:3, :, :]
-        pose_combined[:, :, pose_mask].requires_grad = True
+        pose_combined[:, :, pose_mask].requires_grad_ = True
         pose_combined[:, :, ~pose_mask].requires_grad = False
         poses_param = nn.Parameter(pose_combined)
 
@@ -1293,8 +1464,8 @@ class MTFMapper:
             self.ProjectMapToFrame(Current_pose, (current_kp, current_des), KF_xyz, rgb_img)
             # Gaussian Splatting에 넣을 키 프레임인지 확인한다.
             if self.CheckSuperPixelFrame(self.KF_poses[:, :, -1]):
-                # self.LocalBA(len(self.KF_bow_list) - 1, 10, 0.001, 0.001)
-                # Flag_BA = True
+                self.LocalBA(len(self.KF_bow_list) - 1, 100, 0.001, 0.001)
+                Flag_BA = True
 
                 self.GKF_pose = self.KF_poses[:, :, -1].detach()
                 self.GKF_index_list = torch.cat(

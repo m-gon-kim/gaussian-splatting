@@ -635,22 +635,11 @@ class GaussianMapper:
 
     def Visualize(self):
         if self.SP_poses.shape[2] > 0:
-
             # Fixed camera position for visualization
-            for i in range(len(self.viz_world_view_transform_list)):
-                viz_world_view_transform = self.viz_world_view_transform_list[i]
-                viz_full_proj_transform = self.viz_full_proj_transform_list[i]
-                viz_camera_center = self.viz_camera_center_list[i]
-                render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform, viz_full_proj_transform,
-                                       viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
-                img = render_pkg["render"]  #GRB
-                np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy().copy()    #RGB
-                if i == 1:
-                    self.DrawCameraWireframes(np_render, viz_camera_center, self.intr)
-                cv2.imshow(f"start_gs{i}", np_render)
-
             # Render from keyframes
-            for i in range(0, self.SP_poses.shape[2], 1):
+            for j in range(0, self.SP_poses.shape[2] * 8, 20):
+                idx = int(j/20)
+                i = int(j / 8)
                 viz_world_view_transform = self.world_view_transform_list[i]
                 viz_full_proj_transform = self.full_proj_transform_list[i]
                 viz_camera_center = self.camera_center_list[i]
@@ -660,11 +649,11 @@ class GaussianMapper:
                 img = render_pkg["render"]
                 np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
 
-                window_x = (i % 4) * 640
-                window_y = int(i / 4) * 480
-                if i > 11:
+                window_x = (idx % 4) * 640
+                window_y = int(idx / 4) * 480
+                if idx > 11:
                     window_x += (640 * 4)
-                    window_y = int((i-12) / 4) * 480
+                    window_y = int((idx-12) / 4) * 480
                 kf_num = self.SP_KF_num_list[i]
                 cv2.imshow(f"rendered{kf_num}", np_render)
                 cv2.moveWindow(f"rendered{kf_num}", window_x, window_y)
@@ -697,6 +686,18 @@ class GaussianMapper:
             self.DrawCameraWireframes(np_render_third, third_w_center, self.intr_wide)
 
             cv2.imshow(f"third", np_render_third)
+
+            for i in range(len(self.viz_world_view_transform_list)):
+                viz_world_view_transform = self.viz_world_view_transform_list[i]
+                viz_full_proj_transform = self.viz_full_proj_transform_list[i]
+                viz_camera_center = self.viz_camera_center_list[i]
+                render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform, viz_full_proj_transform,
+                                       viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
+                img = render_pkg["render"]  #GRB
+                np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy().copy()    #RGB
+                if i == 1:
+                    self.DrawCameraWireframes(np_render, viz_camera_center, self.intr)
+                cv2.imshow(f"start_gs{i}", np_render)
 
             cv2.waitKey(1)
 
