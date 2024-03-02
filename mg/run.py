@@ -1,3 +1,4 @@
+import cv2
 
 from dataset import Dataset
 
@@ -6,8 +7,12 @@ from tracking_torch import TrackerTorch
 from mapping import Mapper
 from mtf_mapping import MTFMapper
 from gaussian_mapping import GaussianMapper
+from tracking_unreal import TrackerUnreal
+from tracking_unreal_all_frames import TrackerUnrealAllFrames
+from gaussian_mapping_unreal import GaussianMapperUnreal
+from tracking_bypass import TrackerByPass
+from gaussian_mapping_bypass import GaussianMapperByPass
 import torch.multiprocessing as mp
-
 
 def PlayDataset(dataset, img_pair_q):
     begin_index = 1
@@ -16,6 +21,82 @@ def PlayDataset(dataset, img_pair_q):
     for index in range(cnt):
         rgb, gray, d, pose = dataset.ReturnData(index + begin_index)
         img_pair_q.put([awake, [rgb, gray, d, pose]])
+    img_pair_q.put([False, []])
+
+def TrackingUnrealTime(dataset, parameters, img_pair_q, tracking_result_q):
+    tracker = TrackerUnreal(dataset, parameters)
+    while True:
+        if not img_pair_q.empty():
+            instance = img_pair_q.get()
+            if not instance[0]:  # Abort (System is not awake)
+                print("Tracking Abort")
+                tracking_result_q.put([False, []])
+                return
+            tracking_result = tracker.SelectKF(instance)
+            if tracking_result[0][1]:
+                tracking_result_q.put([True, tracking_result])
+
+
+def TrackingUnrealTimeAllFrames(dataset, parameters, img_pair_q, tracking_result_q):
+    tracker = TrackerUnrealAllFrames(dataset, parameters)
+    while True:
+        if not img_pair_q.empty():
+            instance = img_pair_q.get()
+            if not instance[0]:  # Abort (System is not awake)
+                print("Tracking Abort")
+                tracking_result_q.put([False, []])
+                return
+            tracking_result = tracker.SelectKF(instance)
+            if tracking_result[0][1]:
+                tracking_result_q.put([True, tracking_result])
+
+
+def GaussianMappingUnrealTime(dataset, parameters, tracking_result_q):
+    gaussian_mapper = GaussianMapperUnreal(dataset, parameters)
+
+    while True:
+        if not tracking_result_q.empty():
+            # q_size = img_pair_q.qsize()
+            # print(f"PROCESS: G-MAPPING Q {q_size}")
+            instance = tracking_result_q.get()
+            if instance[0]:
+                gaussian_mapper.AddGaussianFrame(instance[1])
+            else:  # Abort (System is not awake)
+                print("Gaussian Mapping Abort")
+                gaussian_mapper.FullOptimizeGaussian()
+                gaussian_mapper.Visualize()
+                cv2.waitKey(0)
+                return
+
+
+def TrackingByPass(dataset, parameters, img_pair_q, tracking_result_q):
+    tracker = TrackerByPass(dataset, parameters)
+    while True:
+        if not img_pair_q.empty():
+            instance = img_pair_q.get()
+            if not instance[0]:  # Abort (System is not awake)
+                print("Tracking Abort")
+                tracking_result_q.put([False, []])
+                return
+            tracking_result = tracker.SelectKF(instance)
+            if tracking_result[0][1]:
+                tracking_result_q.put([True, tracking_result])
+
+def GaussianMappingByPass(dataset, parameters, mapping_result_q):
+    gaussian_mapper = GaussianMapperByPass(dataset, parameters)
+    while True:
+        if not mapping_result_q.empty():
+            instance = mapping_result_q.get()
+            if instance[0]:
+                gaussian_mapper.AddGaussianFrame(instance[1])
+                gaussian_mapper.InsertionOptimize()
+                gaussian_mapper.FullOptimizeGaussian(10, False)
+            else:
+                gaussian_mapper.FullOptimizeGaussian(20, False)
+                gaussian_mapper.Visualize()
+                cv2.waitKey(0)
+                return
+        gaussian_mapper.Visualize()
 
 def TrackingTorch(dataset, parameters, img_pair_q, tracking_result_q):
     tracker = TrackerTorch(dataset, parameters)
@@ -97,20 +178,68 @@ if __name__ == '__main__':
     dataset = dataset_class.GetDataset()
     parameters = dataset_class.parameters
 
+    ####################################################################################################
+    ##  Process 생성하기  ################################################################################
+    ####################################################################################################
+
     process_play_data = mp.Process(target=PlayDataset, args=(dataset, img_pair_q,))
-    process_tracking_torch = mp.Process(target=TrackingTorch, args=(dataset, parameters["tracking"], img_pair_q, tracking_result_q,))
-    process_mapping = mp.Process(target=MTF_Mapping, args=(dataset, parameters["mapping"], tracking_result_q, mapping_result_q,))
-    process_gaussian_mapping = mp.Process(target=GaussianMappingTest, args=(dataset, parameters["gaussian"], mapping_result_q,))
+    # process_tracking_torch = mp.Process(target=TrackingTorch, args=(dataset, parameters["tracking"], img_pair_q, tracking_result_q,))
+    # process_mapping = mp.Process(target=MTF_Mapping, args=(dataset, parameters["mapping"], tracking_result_q, mapping_result_q,))
+    # process_gaussian_mapping = mp.Process(target=GaussianMappingTest, args=(dataset, parameters["gaussian"], mapping_result_q,))
 
-    process_gaussian_mapping.start()
-    process_mapping.start()
-    process_tracking_torch.start()
+    # A. 비 실시간 테스트 (모든 frame)
+    # process_tracking_unreal_all_frames = mp.Process(target=TrackingUnrealTimeAllFrames, args=(dataset, parameters, img_pair_q, tracking_result_q,))
+    # process_gaussian_mapping_unreal = mp.Process(target=GaussianMappingUnrealTime, args=(dataset, parameters["gaussian"], tracking_result_q,))
+
+    # B. 비 실시간 테스트 (Keyframe selection)
+    # process_tracking_unreal = mp.Process(target=TrackingUnrealTime, args=(dataset, parameters, img_pair_q, tracking_result_q,))
+    # process_gaussian_mapping_unreal = mp.Process(target=GaussianMappingUnrealTime, args=(dataset, parameters["gaussian"], tracking_result_q,))
+
+    # C. ByPass 테스트
+    process_tracking_bypass = mp.Process(target=TrackingByPass, args=(dataset, parameters, img_pair_q, tracking_result_q,))
+    process_gaussian_mapping_bypass = mp.Process(target=GaussianMappingByPass, args=(dataset, parameters["gaussian"], tracking_result_q,))
+
+    ####################################################################################################
+    ##  Process 켜기  ###################################################################################
+    ####################################################################################################
+
+    # A. 비 실시간 테스트 (모든 frame)
+    # process_tracking_unreal_all_frames.start()
+    # process_tracking_unreal.start()
+
+    # B. 비 실시간 테스트 (Keyframe selection)
+    # process_gaussian_mapping_unreal.start()
+    # process_tracking_unreal.start()
+
+    # C. ByPass 테스트
+    process_gaussian_mapping_bypass.start()
+    process_tracking_bypass.start()
+
+
+    # process_gaussian_mapping.start()
+    # process_mapping.start()
+    # process_tracking_torch.start()
     process_play_data.start()
-    # process_tracking.start()
 
+
+    ####################################################################################################
+    ##  Process 끄기  ###################################################################################
+    ####################################################################################################
     process_play_data.join()
-    # process_tracking.join()
-    process_tracking_torch.join()
-    process_mapping.join()
-    process_gaussian_mapping.join()
+
+    # A. 비 실시간 테스트 (모든 frame)
+    # process_tracking_unreal_all_frames.join()
+    # process_gaussian_mapping_unreal.join()
+
+    # B. 비 실시간 테스트 (Keyframe selection)
+    # process_tracking_unreal.join()
+    # process_gaussian_mapping_unreal.join()
+
+    # C. ByPass 테스트
+    process_tracking_bypass.join()
+    process_gaussian_mapping_bypass.join()
+
+    # process_tracking_torch.join()
+    # process_mapping.join()
+    # process_gaussian_mapping.join()
 

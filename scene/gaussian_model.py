@@ -457,8 +457,6 @@ class GaussianModel:
 
 
     def AddGaussian(self, xyz_array, color_array, index):
-        print(f"Add gaussian {index}")
-
         # Convert PCD to Gaussians
         with torch.no_grad():
             fused_point_cloud = xyz_array.detach().T  # (N, 3)
@@ -495,7 +493,6 @@ class GaussianModel:
             self._features_dc_list = torch.cat((self._features_dc, features_dc), dim=0)
             self._features_rest_list = torch.cat((self._features_rest, features_rest), dim=0)
             self._scaling_list = torch.cat((self._scaling, scaling), dim=0)
-            print("scaling", self._scaling_list.shape)
             self._rotation_list = torch.cat((self._rotation, rotation), dim=0)
             self._opacity_list = torch.cat((self._opacity, opacity), dim=0)
 
@@ -509,8 +506,7 @@ class GaussianModel:
         self._rotation = nn.Parameter(self._rotation_list.detach()).requires_grad_(True)
         self._opacity = nn.Parameter(self._opacity_list.detach()).requires_grad_(True)
 
-
-        print(f"Length of Gaussian:{self._xyz_list.shape}")
+        print(f"Add gaussian {index}", self._xyz_list.shape)
         del fused_point_cloud
         del xyz_array
         del denom

@@ -43,4 +43,11 @@ class SuperPixelManager:
                 x = int(torch.mean(masked_indicies[1, :]))
                 index_list.append((y, x))
             result = torch.tensor(index_list).to(self.device).T
+
+        # Visualization
+        # lsc_mask = slic.getLabelContourMask()
+        # contour_img = rgb.copy()
+        # contour_img[lsc_mask == 255] = [0, 0, 255]  # Green color for contours
+        # cv2.imshow("super", contour_img)
+        # cv2.waitKey(1)
         return result
