@@ -2,7 +2,8 @@ import cv2
 import os
 import numpy as np
 
-class ScannetDataset:
+
+class ScannetDataset():
     def __init__(self):
         self.path = ""
 
@@ -60,6 +61,23 @@ class ScannetDataset:
         assert len(rgb_list) == len(depth_list), "Number of files in depth and RGB folders must be the same"
         return len(rgb_list)
 
+    def read_matrices(self):
+        file_list = self.get_file_list(".pose.txt")
+        matrices = []
+        for matrix_file in file_list:
+            with open(matrix_file, 'r') as file:
+                matrix = np.array([list(map(float, line.strip().split())) for line in file])
+                matrices.append(matrix)
+        return matrices
+
+    def get_relative_poses(self):
+        matrices = self.read_matrices()
+        relative_poses = [np.identity(4)]
+        for i in range(1, len(matrices)):
+            relative_pose = np.linalg.inv(matrices[0]) @ matrices[i]  # Relative pose calculation
+            relative_poses.append(relative_pose)
+        return relative_poses
+
     def InitializeDataset(self):
         self.read_info_file(f'{self.path}_info.txt')
         rgb_list = self.get_file_list(".color.jpg")
@@ -97,5 +115,5 @@ class ScannetDataset:
         # rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
         gray = cv2.imread(f'{self.path}pair/gray/{file_name}', cv2.IMREAD_GRAYSCALE)
         d = cv2.imread(f'{self.path}pair/depth/{d_file_name}', cv2.IMREAD_UNCHANGED)
-
-        return rgb, gray, d
+        pose = self.get_relative_poses()
+        return rgb, gray, d, pose

@@ -1,8 +1,9 @@
-
 import os
 import numpy as np
 import cv2
-class TumDataset:
+import utility
+
+class TumDataset():
     def __init__(self):
         self.path = ""
         # self.img_pair = []
@@ -42,11 +43,38 @@ class TumDataset:
             pair[a] = b
         return pair
 
+    def read_matrices(self):
+        poses_path = f'{self.path}associated_gt.txt'
+        matrices = []
+        with open(poses_path, 'r') as file:
+            for line in file:
+                line = line.rstrip()
+                if line.strip() == '':
+                    pass
+                pose = list(map(float, line.split(' ')))
+                matrix = np.eye(4)
+                matrix[:3, :3] = utility.qvec2rotmat(pose[3:])
+                matrix[:3, 3] = pose[:3]
+                matrices.append(matrix)
+
+        return matrices
+
+    def get_relative_poses(self):
+        matrices = self.read_matrices()
+        relative_poses = [np.identity(4)]
+        for i in range(1, len(matrices)):
+            relative_pose = np.linalg.inv(matrices[0]) @ matrices[i]  # Relative pose calculation
+            relative_poses.append(relative_pose)
+        return relative_poses
+
     def InitializeDataset(self):
         first_list = self.read_file_list(f'{self.path}rgb.txt')
         second_list = self.read_file_list(f'{self.path}depth.txt')
+        third_list = self.read_file_list(f'{self.path}groundtruth.txt')
 
         matches = self.associate(first_list, second_list, 0.0, 0.02)
+        gt_matches = self.associate(matches, third_list, 0.0, 0.02)
+
         pair = []
         for a in matches:
             pair.append((first_list[a][0], second_list[matches[a]][0]))
@@ -69,6 +97,16 @@ class TumDataset:
             d_32bit = d_16bit.astype(np.float32)
             cv2.imwrite(f'{self.path}pair/depth/{str(cntr).zfill(5)}.tiff', d_32bit)
 
+        # make poses file (tx ty tz qx qy qz qw)
+        pose_file = f'{self.path}associated_gt.txt'
+        gt = []
+        for a in gt_matches:
+            gt.append(third_list[gt_matches[a]])
+        with open(pose_file, 'w+') as file:
+            for a in gt:
+                for b in a:
+                    file.write(f'{b} ')
+                file.write('\n')
             # self.img_pair.append((rgb, d))
             # self.rgb_list.append(rgb)
             # self.gray_list.append(gray)
@@ -102,4 +140,5 @@ class TumDataset:
         # rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
         gray = cv2.imread(f'{self.path}pair/gray/{file_name}', cv2.IMREAD_GRAYSCALE)
         d = cv2.imread(f'{self.path}pair/depth/{d_file_name}', cv2.IMREAD_UNCHANGED)
-        return rgb, gray, d
+        pose = self.get_relative_poses()
+        return rgb, gray, d, pose
