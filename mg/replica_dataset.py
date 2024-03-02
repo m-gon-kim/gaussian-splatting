@@ -44,7 +44,7 @@ class ReplicaDataset():
 
     def get_relative_poses(self):
         matrices = self.read_matrices()
-        relative_poses = [np.identity(4)]
+        relative_poses = [np.identity(4, dtype=np.float32)]
         for i in range(1, len(matrices)):
             relative_pose = np.linalg.inv(matrices[0]) @ matrices[i]  # Relative pose calculation
             relative_poses.append(relative_pose)
