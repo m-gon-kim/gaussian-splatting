@@ -5,6 +5,7 @@ path = Z:/TeamFolder/GS_SLAM/TUM_RGBD/rgbd_dataset_freiburg3_long_office_househo
 
 dataset_type = REPLICA
 path = C:/lab/research/dataset/Replica/room_0/Sequence_1/
+novel_view_path = C:/lab/research/dataset/Replica/room_0/Sequence_2/
 
 dataset_type = SCANNET
 path = Z:/TeamFolder/GS_SLAM/ScanNet/scans/scene0059_00/out/

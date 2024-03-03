@@ -9,6 +9,7 @@ class Dataset:
         self.default_dataset_path = 'Z:/TeamFolder/GS_SLAM/TUM_RGBD/rgbd_dataset_freiburg3_long_office_household/'
 
         self.selected_dataset = ""
+        self.nv_path = ""
         self.path_dict = {}
         self.ReadSetting()
 
@@ -35,12 +36,16 @@ class Dataset:
                         dataset_type = value
                     elif key.strip() == 'path':
                         self.path_dict[dataset_type] = value
+                    elif key.strip() == 'novel_view_path':
+                        self.nv_path = value
 
     def GetDataset(self):
         dataset = self.dataset_dict.get(self.selected_dataset, TumDataset())
         dataset.path = self.path_dict.get(self.selected_dataset, self.default_dataset_path)
         if isinstance(dataset, ScannetDataset):
             dataset.initialize_info()
+        elif isinstance(dataset, ReplicaDataset):
+            dataset.get_novel_view(self.nv_path)
         dataset.relative_poses = dataset.get_relative_poses()
         return dataset
 
