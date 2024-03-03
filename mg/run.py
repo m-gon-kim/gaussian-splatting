@@ -10,9 +10,11 @@ from gaussian_mapping import GaussianMapper
 from tracking_unreal import TrackerUnreal
 from tracking_unreal_all_frames import TrackerUnrealAllFrames
 from gaussian_mapping_unreal import GaussianMapperUnreal
+from gaussian_mapping_unreal_all_frames import GaussianMapperUnrealAllFrames
 from tracking_bypass import TrackerByPass
 from gaussian_mapping_bypass import GaussianMapperByPass
 import torch.multiprocessing as mp
+import time
 
 def PlayDataset(dataset, img_pair_q):
     begin_index = 1
@@ -23,8 +25,8 @@ def PlayDataset(dataset, img_pair_q):
         img_pair_q.put([awake, [rgb, gray, d, pose]])
     img_pair_q.put([False, []])
 
-def TrackingUnrealTime(dataset, parameters, img_pair_q, tracking_result_q):
-    tracker = TrackerUnreal(dataset, parameters)
+def TrackingUnrealTimeAllFrames(dataset, parameters, img_pair_q, tracking_result_q):
+    tracker = TrackerUnrealAllFrames(dataset, parameters)
     while True:
         if not img_pair_q.empty():
             instance = img_pair_q.get()
@@ -36,9 +38,27 @@ def TrackingUnrealTime(dataset, parameters, img_pair_q, tracking_result_q):
             if tracking_result[0][1]:
                 tracking_result_q.put([True, tracking_result])
 
+def GaussianMappingUnrealTimeAllFrames(dataset, parameters, tracking_result_q):
+    gaussian_mapper = GaussianMapperUnrealAllFrames(dataset, parameters)
 
-def TrackingUnrealTimeAllFrames(dataset, parameters, img_pair_q, tracking_result_q):
-    tracker = TrackerUnrealAllFrames(dataset, parameters)
+    while True:
+        if not tracking_result_q.empty():
+            # q_size = img_pair_q.qsize()
+            # print(f"PROCESS: G-MAPPING Q {q_size}")
+            instance = tracking_result_q.get()
+            if instance[0]:
+                gaussian_mapper.AddGaussianFrame(instance[1])
+            else:  # Abort (System is not awake)
+                start_time = time.time()
+                gaussian_mapper.FullOptimizeGaussian(10000)
+                end_time = time.time()
+                print("Elapsed time:", end_time - start_time, "seconds")
+                gaussian_mapper.Evalulate()
+                return
+
+
+def TrackingUnrealTime(dataset, parameters, img_pair_q, tracking_result_q):
+    tracker = TrackerUnreal(dataset, parameters)
     while True:
         if not img_pair_q.empty():
             instance = img_pair_q.get()
@@ -62,10 +82,11 @@ def GaussianMappingUnrealTime(dataset, parameters, tracking_result_q):
             if instance[0]:
                 gaussian_mapper.AddGaussianFrame(instance[1])
             else:  # Abort (System is not awake)
-                print("Gaussian Mapping Abort")
+                start_time = time.time()
                 gaussian_mapper.FullOptimizeGaussian()
-                gaussian_mapper.Visualize()
-                cv2.waitKey(0)
+                end_time = time.time()
+                print("Elapsed time:", end_time - start_time, "seconds")
+                gaussian_mapper.Evalulate()
                 return
 
 
@@ -189,31 +210,31 @@ if __name__ == '__main__':
 
     # A. 비 실시간 테스트 (모든 frame)
     # process_tracking_unreal_all_frames = mp.Process(target=TrackingUnrealTimeAllFrames, args=(dataset, parameters, img_pair_q, tracking_result_q,))
-    # process_gaussian_mapping_unreal = mp.Process(target=GaussianMappingUnrealTime, args=(dataset, parameters["gaussian"], tracking_result_q,))
+    # process_gaussian_mapping_unreal_all_frames = mp.Process(target=GaussianMappingUnrealTimeAllFrames, args=(dataset, parameters["gaussian"], tracking_result_q,))
 
     # B. 비 실시간 테스트 (Keyframe selection)
-    # process_tracking_unreal = mp.Process(target=TrackingUnrealTime, args=(dataset, parameters, img_pair_q, tracking_result_q,))
-    # process_gaussian_mapping_unreal = mp.Process(target=GaussianMappingUnrealTime, args=(dataset, parameters["gaussian"], tracking_result_q,))
+    process_tracking_unreal = mp.Process(target=TrackingUnrealTime, args=(dataset, parameters, img_pair_q, tracking_result_q,))
+    process_gaussian_mapping_unreal = mp.Process(target=GaussianMappingUnrealTime, args=(dataset, parameters["gaussian"], tracking_result_q,))
 
     # C. ByPass 테스트
-    process_tracking_bypass = mp.Process(target=TrackingByPass, args=(dataset, parameters, img_pair_q, tracking_result_q,))
-    process_gaussian_mapping_bypass = mp.Process(target=GaussianMappingByPass, args=(dataset, parameters["gaussian"], tracking_result_q,))
+    # process_tracking_bypass = mp.Process(target=TrackingByPass, args=(dataset, parameters, img_pair_q, tracking_result_q,))
+    # process_gaussian_mapping_bypass = mp.Process(target=GaussianMappingByPass, args=(dataset, parameters["gaussian"], tracking_result_q,))
 
     ####################################################################################################
     ##  Process 켜기  ###################################################################################
     ####################################################################################################
 
     # A. 비 실시간 테스트 (모든 frame)
+    # process_gaussian_mapping_unreal_all_frames.start()
     # process_tracking_unreal_all_frames.start()
-    # process_tracking_unreal.start()
 
     # B. 비 실시간 테스트 (Keyframe selection)
-    # process_gaussian_mapping_unreal.start()
-    # process_tracking_unreal.start()
+    process_gaussian_mapping_unreal.start()
+    process_tracking_unreal.start()
 
     # C. ByPass 테스트
-    process_gaussian_mapping_bypass.start()
-    process_tracking_bypass.start()
+    # process_gaussian_mapping_bypass.start()
+    # process_tracking_bypass.start()
 
 
     # process_gaussian_mapping.start()
@@ -229,15 +250,15 @@ if __name__ == '__main__':
 
     # A. 비 실시간 테스트 (모든 frame)
     # process_tracking_unreal_all_frames.join()
-    # process_gaussian_mapping_unreal.join()
+    # process_gaussian_mapping_unreal_all_frames.join()
 
     # B. 비 실시간 테스트 (Keyframe selection)
-    # process_tracking_unreal.join()
-    # process_gaussian_mapping_unreal.join()
+    process_tracking_unreal.join()
+    process_gaussian_mapping_unreal.join()
 
     # C. ByPass 테스트
-    process_tracking_bypass.join()
-    process_gaussian_mapping_bypass.join()
+    # process_tracking_bypass.join()
+    # process_gaussian_mapping_bypass.join()
 
     # process_tracking_torch.join()
     # process_mapping.join()
