@@ -382,6 +382,7 @@ class GaussianModel:
         n_init_points = self.get_xyz.shape[0]
         # Extract points that satisfy the gradient condition
         padded_grad = torch.zeros((n_init_points), device="cuda")
+        print("grads shape", grads.shape[0])
         padded_grad[:grads.shape[0]] = grads.squeeze()
         selected_pts_mask = torch.where(padded_grad >= grad_threshold, True, False)
         radii_mask = self.max_radii2D > 20
@@ -554,7 +555,7 @@ class GaussianModel:
         position_lr_init = 0.00016
         position_lr_final = 0.0000016
         position_lr_delay_mult = 0.01
-        position_lr_max_steps = 100  # 30_000
+        position_lr_max_steps = 30_000  # 30_000
         feature_lr = 0.0025
         opacity_lr = 0.05
         scaling_lr = 0.005
