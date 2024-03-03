@@ -1,12 +1,15 @@
 import cv2
 import os
 import numpy as np
+import torch
 
 class ReplicaDataset():
     def __init__(self):
         self.path = ""
+        self.novel_view_path = ""
         self.relative_poses = []
-
+        self.nv_relative_poses = []
+        self.nv_rgb_list = []
         # self.path = "C:/mg/dataset/Replica/Replica_Dataset/office_0/Sequence_1/"
 
         # self.img_pair = []
@@ -16,6 +19,12 @@ class ReplicaDataset():
 
     def get_rgb_list(self):
         rgb_folder = f'{self.path}rgb/'
+        rgb_files = [rgb_folder + file for file in os.listdir(rgb_folder)]
+        rgb_files = sorted(rgb_files, key=lambda x: int(x.split('rgb_')[-1].split('.')[0]))
+        return rgb_files
+
+    def get_nv_rgb_list(self):
+        rgb_folder = f'{self.novel_view_path}rgb/'
         rgb_files = [rgb_folder + file for file in os.listdir(rgb_folder)]
         rgb_files = sorted(rgb_files, key=lambda x: int(x.split('rgb_')[-1].split('.')[0]))
         return rgb_files
@@ -33,8 +42,8 @@ class ReplicaDataset():
         data_len = len(rgb_list)
         return data_len
 
-    def read_matrices(self):
-        matrices_path = f'{self.path}traj_w_c.txt'
+    def read_matrices(self, path):
+        matrices_path = f'{path}traj_w_c.txt'
         matrices = []
         with open(matrices_path, 'r') as file:
             for line in file:
@@ -42,13 +51,26 @@ class ReplicaDataset():
                 matrices.append(matrix.reshape(4, 4))
         return matrices
 
-    def get_relative_poses(self):
-        matrices = self.read_matrices()
+    def get_relative_poses(self):  # np.array
+        matrices = self.read_matrices(self.path)
         relative_poses = [np.identity(4, dtype=np.float32)]
         for i in range(1, len(matrices)):
             relative_pose = np.linalg.inv(matrices[0]) @ matrices[i]  # Relative pose calculation
             relative_poses.append(relative_pose)
         return relative_poses
+
+    def get_nv_relative_poses(self):  # torch
+        matrices = self.read_matrices(self.novel_view_path)
+        relative_poses = [torch.eye(4, dtype=torch.float32)]
+        for i in range(1, len(matrices)):
+            relative_pose = torch.inverse(torch.tensor(matrices[0], dtype=torch.float32)) @ torch.tensor(matrices[i], dtype=torch.float32)
+            relative_poses.append(relative_pose)
+        return relative_poses
+
+    def get_novel_view(self, path):
+        self.novel_view_path = path
+        self.nv_relative_poses = self.get_nv_relative_poses()
+        self.nv_rgb_list = self.get_nv_rgb_list()
 
     def InitializeDataset(self):
         rgb_list = self.get_rgb_list()
