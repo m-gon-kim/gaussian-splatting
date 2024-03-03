@@ -413,7 +413,7 @@ class GaussianMapperUnreal:
 
         iter = 0
         # self.gaussian.update_learning_rate(self.iteration)
-        optimization_i_threshold = 50
+        optimization_i_threshold = 10
         for optimization_i in range(optimization_i_threshold):
             if optimization_i % 10 == 0:
                 print("Gaussian Optimization, iteration: ", optimization_i)
@@ -442,9 +442,9 @@ class GaussianMapperUnreal:
                                                                          radii[visibility_filter])
                 self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
 
-                if iter % 1000 == 0 and iter > 500 and iter < 5001:
-                    self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
-                                                    self.size_threshold)
+                # if iter % 1000 == 0 and iter > 500 and iter < 5001:
+                #     self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
+                #                                     self.size_threshold)
 
                 self.gaussian.optimizer.step()
                 self.gaussian.optimizer.zero_grad(set_to_none=True)

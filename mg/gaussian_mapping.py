@@ -699,9 +699,11 @@ class GaussianMapper:
                     self.DrawCameraWireframes(np_render, viz_camera_center, self.intr)
                 cv2.imshow(f"start_gs{i}", np_render)
 
-            cv2.waitKey(0)
+            cv2.waitKey(1)
 
     def GaussianMap(self, mapping_result_instance):
+        print("VIZ", self.SP_poses.shape[2])
+
         if not mapping_result_instance[0]:
             return
         mapping_result = mapping_result_instance[1]
