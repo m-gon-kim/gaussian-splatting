@@ -394,6 +394,8 @@ class GaussianMapperUnrealAllFrames:
             for i in sample_kf_index_list:
                 img_gt = self.SP_img_gt_list[i].detach()
                 with torch.no_grad():
+                    if iter % 1000 == 0:
+                        self.gaussian.oneupSHdegree()
                     world_view_transform = self.world_view_transform_list[i]
                     full_proj_transform = self.full_proj_transform_list[i]
                     camera_center = self.camera_center_list[i]
@@ -409,9 +411,22 @@ class GaussianMapperUnrealAllFrames:
 
                 loss.backward()
 
-                self.gaussian.max_radii2D[visibility_filter] = torch.max(self.gaussian.max_radii2D[visibility_filter],
-                                                                         radii[visibility_filter])
-                self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
+                # densification
+                if iter < 15000:
+                    # Keep track of max radii in image-space for pruning
+                    self.gaussian.max_radii2D[visibility_filter] = torch.max(
+                        self.gaussian.max_radii2D[visibility_filter],
+                        radii[visibility_filter])
+                    self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
+
+                    if iter > 500 and iter % 100 == 0:
+                        size_threshold = 20 if iter > 3000 else None
+                        self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
+                                                        self.size_threshold)
+
+                    if iter % 3000 == 0 :
+                        self.gaussian.reset_opacity()
+
 
                 # if i % 100 == 0 and i > 0:
                 #     self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
