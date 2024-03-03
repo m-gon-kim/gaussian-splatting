@@ -182,4 +182,4 @@ class TrackerUnreal:
             return [True, Add_Flag], [rgb, masked_xyz.detach().cpu(), masked_rgb.detach().cpu(), pose.detach().cpu(),
                                       self.KF_num]
         else:
-            return [True, Add_Flag], []
+            return [True, Add_Flag], [rgb, [], [], pose.detach().cpu(), self.KF_num]

@@ -56,6 +56,11 @@ class GaussianMapperUnreal:
         self.SP_superpixel_list = []
         self.SP_KF_num_list = []
         self.iteration_frame = []
+        self.Eval_pose_list = []
+        self.Eval_img_list = []
+        self.Eval_full_proj_transform_list = []
+        self.Eval_world_view_transform_list = []
+        self.Eval_camera_center_list = []
 
         with torch.no_grad():
             self.SP_poses = torch.empty((4, 4, 0), dtype=torch.float32, device=self.device)
@@ -71,7 +76,6 @@ class GaussianMapperUnreal:
         self.gaussian = GaussianModel(3, self.device)
         with torch.no_grad():
             self.background = torch.tensor([1, 1, 1], dtype=torch.float32, device=self.device)
-            #Mask
         self.cam_centers = []
         self.cameras_extent = 0
         self.size_threshold = 20
@@ -375,26 +379,33 @@ class GaussianMapperUnreal:
         self.world_view_transform_list.append(world_view_transform.detach())
         self.camera_center_list.append(camera_center.detach())
         self.SP_KF_num_list.append(KF_num)
-
-        # Gaussian
         self.gaussian.InitializeOptimizer()
-        self.CreateCameraWireframePoints(pose)
 
     def Evalulate(self):
-        for i in range(0, self.SP_poses.shape[2]):
-            viz_world_view_transform = self.world_view_transform_list[i]
-            viz_full_proj_transform = self.full_proj_transform_list[i]
-            viz_camera_center = self.camera_center_list[i]
+        psnr_sum = 0
+        for i in range(len(self.Eval_img_list)):
+            viz_world_view_transform = self.Eval_world_view_transform_list[i]
+            viz_full_proj_transform = self.Eval_full_proj_transform_list[i]
+            viz_camera_center = self.Eval_camera_center_list[i]
             render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform,
                                    viz_full_proj_transform,
                                    viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
             img = render_pkg["render"]
-            np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
-            img_gt = torch.permute(self.SP_img_gt_list[i].detach(), (1, 2, 0)).detach().cpu().numpy()
-            psnr_value = cv2.PSNR(np_render, img_gt, 1.0)
-            kf_num = self.SP_KF_num_list[i]
-            print(f"PSNR {kf_num} : {psnr_value}")
-        cv2.waitKey(0)
+            np_render = (torch.permute(img, (1, 2, 0)).detach().cpu().numpy()*255).astype(np.uint8)
+
+            img_gt = self.Eval_img_list[i]
+            psnr_value = self.Psnr(np_render, img_gt)
+            psnr_sum += psnr_value
+            print(f"PSNR {i} : {psnr_value}")
+        print(f"Avg_PSNR : {float(psnr_sum/len(self.Eval_img_list))}")
+
+    def Psnr(self, GT, img):
+        mse = np.mean((GT - img) ** 2)
+        if mse == 0:
+            return 600
+        PIXEL_MAX = 255
+        return 20 * np.log10(PIXEL_MAX / np.sqrt(mse))
+
 
     def FullOptimizeGaussian(self):
         lambda_dssim = 0.2
@@ -431,9 +442,9 @@ class GaussianMapperUnreal:
                                                                          radii[visibility_filter])
                 self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
 
-                # if i % 100 == 0 and i > 0:
-                #     self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
-                #                                     self.size_threshold)
+                if iter % 1000 == 0 and iter > 500 and iter < 5001:
+                    self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
+                                                    self.size_threshold)
 
                 self.gaussian.optimizer.step()
                 self.gaussian.optimizer.zero_grad(set_to_none=True)
@@ -511,14 +522,27 @@ class GaussianMapperUnreal:
             cv2.waitKey(1)
 
     def AddGaussianFrame(self, instance):
+        tag = instance[0]
         sensor = instance[1]
         rgb = sensor[0]
-        xyz_t = torch.transpose((sensor[1].detach().to(self.device)), 1, 0)
-        rgb_t = sensor[2].detach().to(self.device)
-        pose = sensor[3].detach().to(self.device)
         kf_num = sensor[4]
+        pose = sensor[3].detach().to(self.device)
+        if tag[1]:
+            xyz_t = torch.transpose((sensor[1].detach().to(self.device)), 1, 0)
+            rgb_t = sensor[2].detach().to(self.device)
 
-        self.CreateKeyframe(rgb, rgb_t, xyz_t, pose, kf_num)
-        self.getNerfppNorm(pose)
+            self.CreateKeyframe(rgb, rgb_t, xyz_t, pose, kf_num)
+            self.getNerfppNorm(pose)
+        self.Eval_pose_list.append(pose)
+        self.Eval_img_list.append(rgb)
+
+        world_view_transform = torch.inverse(pose).T.detach()
+        camera_center = torch.inverse(world_view_transform)[3, :3]
+        full_proj_transform = torch.matmul(world_view_transform, self.projection_matrix)
+
+        self.Eval_full_proj_transform_list.append(full_proj_transform.detach())
+        self.Eval_world_view_transform_list.append(world_view_transform.detach())
+        self.Eval_camera_center_list.append(camera_center.detach())
+
 
 

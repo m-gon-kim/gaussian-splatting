@@ -375,12 +375,7 @@ class GaussianMapperUnrealAllFrames:
         self.world_view_transform_list.append(world_view_transform.detach())
         self.camera_center_list.append(camera_center.detach())
         self.SP_KF_num_list.append(KF_num)
-
-        # Gaussian
         self.gaussian.InitializeOptimizer()
-        self.CreateCameraWireframePoints(pose)
-
-
 
     def FullOptimizeGaussian(self, iteration_total):
         lambda_dssim = 0.2
@@ -389,9 +384,9 @@ class GaussianMapperUnrealAllFrames:
         iter = 0
         end_flag = False
         while True:
-            if iter % 100 == 0:
-                print("Gaussian Optimization, iteration: ", iter)
             for i in sample_kf_index_list:
+                if iter % 100 == 0:
+                    print("Gaussian Optimization, iteration: ", iter)
                 img_gt = self.SP_img_gt_list[i].detach()
                 with torch.no_grad():
                     if iter % 1000 == 0:
@@ -424,13 +419,8 @@ class GaussianMapperUnrealAllFrames:
                         self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
                                                         self.size_threshold)
 
-                    if iter % 3000 == 0 :
-                        self.gaussian.reset_opacity()
-
-
-                # if i % 100 == 0 and i > 0:
-                #     self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
-                #                                     self.size_threshold)
+                    # if iter % 3000 == 0 :
+                    #     self.gaussian.reset_opacity()
 
                 self.gaussian.optimizer.step()
                 self.gaussian.optimizer.zero_grad(set_to_none=True)
@@ -443,6 +433,7 @@ class GaussianMapperUnrealAllFrames:
                 break
 
     def Evalulate(self):
+        avg_PSNR = 0
         for i in range(0, self.SP_poses.shape[2]):
             viz_world_view_transform = self.world_view_transform_list[i]
             viz_full_proj_transform = self.full_proj_transform_list[i]
@@ -451,12 +442,21 @@ class GaussianMapperUnrealAllFrames:
                                    viz_full_proj_transform,
                                    viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
             img = render_pkg["render"]
-            np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
-            img_gt = torch.permute(self.SP_img_gt_list[i].detach(), (1, 2, 0)).detach().cpu().numpy()
+            np_render = (torch.permute(img, (1, 2, 0)).detach().cpu().numpy()*255).astype(np.uint8)
+            img_gt = (torch.permute(self.SP_img_gt_list[i].detach(), (1, 2, 0)).detach().cpu().numpy()*255).astype(np.uint8)
 
-            psnr_value = cv2.PSNR(np_render, img_gt, 1.0)
+            psnr_value = self.Psnr(np_render, img_gt, 1.0)
+            avg_PSNR+=psnr_value
             kf_num = self.SP_KF_num_list[i]
             print(f"PSNR {kf_num} : {psnr_value}")
+        print(f"AVG PSNR : {avg_PSNR/self.SP_poses.shape[2]}")
+
+    def Psnr(self, GT, img):
+        mse = np.mean((GT - img) ** 2)
+        if mse == 0:
+            return 600
+        PIXEL_MAX = 255
+        return 20 * np.log10(PIXEL_MAX / np.sqrt(mse))
 
     def Visualize(self):
         if self.SP_poses.shape[2] > 0:
