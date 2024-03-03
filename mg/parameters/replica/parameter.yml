@@ -12,8 +12,8 @@ tracking:
   # 값이 너무 크면, 이전 keyframe과의 ORB매칭이 실패함
   kf_selection:
     match_cnt: 100  # match 갯수가 적으면 KF로 등록한다.
-    angle: 0.4 # 0.1
-    shift: 0.5 # 0.3
+    angle: 0.2 # 0.1
+    shift: 0.3 # 0.3
   guided_search:
     diff: 20  # 1차 pixel diff
     diff_large: 100  # 1차 실패시, 2차 diff
@@ -70,7 +70,7 @@ gaussian:
   # Superpixel생성 시 parameter
   superpixel_creation:
     region_size: 16 # 16
-    ruler: 100
+    ruler: 64
   # Gaussian frame이 생성되면 gaussian을 증폭시키는 frame interval
   insertion:
     densification_interval: 4

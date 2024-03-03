@@ -1464,6 +1464,7 @@ class MTFMapper:
             self.ProjectMapToFrame(Current_pose, (current_kp, current_des), KF_xyz, rgb_img)
             # Gaussian Splatting에 넣을 키 프레임인지 확인한다.
             if self.CheckSuperPixelFrame(self.KF_poses[:, :, -1]):
+                print("SUPERPIXEL")
                 self.LocalBA(len(self.KF_bow_list) - 1, 100, 0.001, 0.001)
                 Flag_BA = True
 
