@@ -400,14 +400,18 @@ class GaussianMapperUnreal:
         lambda_dssim = 0.2
         sample_kf_index_list = list(range(self.SP_poses.shape[2]))
 
+        iter = 0
         # self.gaussian.update_learning_rate(self.iteration)
         optimization_i_threshold = 50
         for optimization_i in range(optimization_i_threshold):
             if optimization_i % 10 == 0:
                 print("Gaussian Optimization, iteration: ", optimization_i)
             for i in sample_kf_index_list:
+
                 img_gt = self.SP_img_gt_list[i].detach()
                 with torch.no_grad():
+                    if iter % 10 == 0:
+                        self.gaussian.oneupSHdegree()
                     world_view_transform = self.world_view_transform_list[i]
                     full_proj_transform = self.full_proj_transform_list[i]
                     camera_center = self.camera_center_list[i]
@@ -433,6 +437,7 @@ class GaussianMapperUnreal:
 
                 self.gaussian.optimizer.step()
                 self.gaussian.optimizer.zero_grad(set_to_none=True)
+                iter+=1
 
 
 
