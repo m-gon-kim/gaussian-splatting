@@ -12,7 +12,7 @@ from gaussian_renderer import mg_render
 from argparse import ArgumentParser
 from utils.loss_utils import l1_loss, ssim
 import random
-class GaussianMapperUnreal:
+class GaussianMapperUnrealAllFrames:
     def __init__(self, dataset, parameters):
         self.width = 640
         self.height = 480
@@ -380,31 +380,17 @@ class GaussianMapperUnreal:
         self.gaussian.InitializeOptimizer()
         self.CreateCameraWireframePoints(pose)
 
-    def Evalulate(self):
-        for i in range(0, self.SP_poses.shape[2]):
-            viz_world_view_transform = self.world_view_transform_list[i]
-            viz_full_proj_transform = self.full_proj_transform_list[i]
-            viz_camera_center = self.camera_center_list[i]
-            render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform,
-                                   viz_full_proj_transform,
-                                   viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
-            img = render_pkg["render"]
-            np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
-            img_gt = torch.permute(self.SP_img_gt_list[i].detach(), (1, 2, 0)).detach().cpu().numpy()
-            psnr_value = cv2.PSNR(np_render, img_gt, 1.0)
-            kf_num = self.SP_KF_num_list[i]
-            print(f"PSNR {kf_num} : {psnr_value}")
-        cv2.waitKey(0)
 
-    def FullOptimizeGaussian(self):
+
+    def FullOptimizeGaussian(self, iteration_total):
         lambda_dssim = 0.2
         sample_kf_index_list = list(range(self.SP_poses.shape[2]))
 
-        # self.gaussian.update_learning_rate(self.iteration)
-        optimization_i_threshold = 50
-        for optimization_i in range(optimization_i_threshold):
-            if optimization_i % 10 == 0:
-                print("Gaussian Optimization, iteration: ", optimization_i)
+        iter = 0
+        end_flag = False
+        while True:
+            if iter % 100 == 0:
+                print("Gaussian Optimization, iteration: ", iter)
             for i in sample_kf_index_list:
                 img_gt = self.SP_img_gt_list[i].detach()
                 with torch.no_grad():
@@ -433,8 +419,29 @@ class GaussianMapperUnreal:
 
                 self.gaussian.optimizer.step()
                 self.gaussian.optimizer.zero_grad(set_to_none=True)
+                iter += 1
 
+                if iter >= iteration_total:
+                    end_flag = True
+                    break
+            if end_flag:
+                break
 
+    def Evalulate(self):
+        for i in range(0, self.SP_poses.shape[2]):
+            viz_world_view_transform = self.world_view_transform_list[i]
+            viz_full_proj_transform = self.full_proj_transform_list[i]
+            viz_camera_center = self.camera_center_list[i]
+            render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform,
+                                   viz_full_proj_transform,
+                                   viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
+            img = render_pkg["render"]
+            np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
+            img_gt = torch.permute(self.SP_img_gt_list[i].detach(), (1, 2, 0)).detach().cpu().numpy()
+
+            psnr_value = cv2.PSNR(np_render, img_gt, 1.0)
+            kf_num = self.SP_KF_num_list[i]
+            print(f"PSNR {kf_num} : {psnr_value}")
 
     def Visualize(self):
         if self.SP_poses.shape[2] > 0:
@@ -451,7 +458,7 @@ class GaussianMapperUnreal:
                                        viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
                 img = render_pkg["render"]
                 np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
-                img_gt = torch.permute(self.SP_img_gt_list[i], (1, 2, 0)).detach().cpu().numpy()
+
                 window_x = (idx % 4) * 640
                 window_y = int(idx / 4) * 480
                 if idx > 11:
@@ -459,7 +466,6 @@ class GaussianMapperUnreal:
                     window_y = int((idx-12) / 4) * 480
                 kf_num = self.SP_KF_num_list[i]
                 cv2.imshow(f"rendered{kf_num}", np_render)
-                cv2.imshow(f"rendered_gt{kf_num}", img_gt)
                 cv2.moveWindow(f"rendered{kf_num}", window_x, window_y)
 
             # Render all frames with predicted camera poses
