@@ -438,16 +438,17 @@ class GaussianMapperUnreal:
 
                 loss.backward()
 
-                self.gaussian.max_radii2D[visibility_filter] = torch.max(self.gaussian.max_radii2D[visibility_filter],
-                                                                         radii[visibility_filter])
-                self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
+                with torch.no_grad():
+                    # self.gaussian.max_radii2D[visibility_filter] = torch.max(self.gaussian.max_radii2D[visibility_filter],
+                    #                                                          radii[visibility_filter])
+                    # self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
 
-                # if iter % 1000 == 0 and iter > 500 and iter < 5001:
-                #     self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
-                #                                     self.size_threshold)
+                    # if iter % 1000 == 0 and iter > 500 and iter < 5001:
+                    #     self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
+                    #                                     self.size_threshold)
 
-                self.gaussian.optimizer.step()
-                self.gaussian.optimizer.zero_grad(set_to_none=True)
+                    self.gaussian.optimizer.step()
+                    self.gaussian.optimizer.zero_grad(set_to_none=True)
                 iter+=1
 
 
