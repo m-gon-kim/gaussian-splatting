@@ -60,10 +60,11 @@ class ReplicaDataset():
         return relative_poses
 
     def get_nv_relative_poses(self):  # torch
-        matrices = self.read_matrices(self.novel_view_path)
-        relative_poses = [torch.eye(4, dtype=torch.float32)]
-        for i in range(1, len(matrices)):
-            relative_pose = torch.inverse(torch.tensor(matrices[0], dtype=torch.float32)) @ torch.tensor(matrices[i], dtype=torch.float32)
+        matrices1 = self.read_matrices(self.path)
+        matrices2 = self.read_matrices(self.novel_view_path)
+        relative_poses = []
+        for i in range(0, len(matrices2)):
+            relative_pose = np.linalg.inv(matrices1[0]) @ matrices2[i]
             relative_poses.append(relative_pose)
         return relative_poses
 

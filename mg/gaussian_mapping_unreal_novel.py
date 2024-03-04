@@ -106,7 +106,9 @@ class GaussianMapperUnrealNovel:
 
 
         self.nv_pose_list = dataset.nv_relative_poses.copy()
+        # print("NV_POSE", self.nv_pose_list)
         self.nv_rgb_path_list = dataset.nv_rgb_list.copy()
+        # print("NV_RGB", self.nv_rgb_path_list)
 
 
 
@@ -393,9 +395,9 @@ class GaussianMapperUnrealNovel:
     def Evalulate(self):
         for i, path in enumerate(self.nv_rgb_path_list):
             gt_img = cv2.imread(path)
-            pose = self.nv_pose_list[i].detach().to(self.device)
+            pose = torch.from_numpy(self.nv_pose_list[i]).detach().to(self.device)
             self.Eval_pose_list.append(pose)
-            self.Eval_img_list.append(gt_img)
+            self.Eval_img_list.append(gt_img.copy())
 
             world_view_transform = torch.inverse(pose).T.detach()
             camera_center = torch.inverse(world_view_transform)[3, :3]
@@ -416,16 +418,25 @@ class GaussianMapperUnrealNovel:
                                    viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
             img = render_pkg["render"]
             np_render_viz = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
-            np_render = (np_render_viz * 255).astype(np.uint8)
+            torch_render_ssim= torch.permute(img, (1, 2, 0)).detach()
+            np_render_psnr = (np_render_viz * 255).astype(np.uint8)
+            np_render_ssim = torch.clamp(torch_render_ssim, 0, 1)
+            np_render = (np_render_viz)
 
             img_gt = self.Eval_img_list[i]
-            psnr_value = self.Psnr(np_render, img_gt)
+            psnr_value = self.Psnr(np_render_psnr, img_gt)
             psnr_sum += psnr_value
-            ssim_value = self.Ssim(np_render, img_gt)
+            ssim_value = self.Ssim(torch_render_ssim, img_gt)
             ssim_sum += ssim_value
-            lpips_value = self.Lpips(np_render, img_gt)
+            lpips_value = self.Lpips(np_render_ssim, img_gt)
             lpips_sum += lpips_value
             print(f"PSNR {i} : {psnr_value}, SSIM {i} : {ssim_value}, LPIPS {i} : {lpips_value}")
+            if i == 0:
+                cv2.imshow(f"rendered{i}", np_render)
+                cv2.imshow(f"rendered_gt{i}", img_gt)
+                cv2.waitKey(0)
+            # cv2.imshow(f"rendered{i}", np_render)
+            # cv2.imshow(f"rendered_gt{i}", img_gt)
         print(f"Avg_PSNR : {float(psnr_sum / len(self.Eval_img_list))}")
         print(f"Avg_SSIM : {float(ssim_sum / len(self.Eval_img_list))}")
         print(f"Avg_LPIPS : {float(lpips_sum / len(self.Eval_img_list))}")
@@ -439,22 +450,22 @@ class GaussianMapperUnrealNovel:
     #         return 600
     #     PIXEL_MAX = 255
     #     return 20 * np.log10(PIXEL_MAX / np.sqrt(mse))
-    def Psnr(self, GT, img):
+    def Psnr(self, img, GT):
         GT_torch = torch.from_numpy(GT).reshape(1, 3, 480, 640)
         img_torch = torch.from_numpy(img).reshape(1, 3, 480, 640)
-        psnr = PSNR()(GT_torch, img_torch)
+        psnr = PSNR()(img_torch, GT_torch)
         return psnr
 
-    def Ssim(self, GT, img):
-        GT_torch = torch.from_numpy(GT).reshape(1, 3, 480, 640)
-        img_torch = torch.from_numpy(img).reshape(1, 3, 480, 640)
-        ssim_val = SSIM(data_range=255)(GT_torch.float(), img_torch.float())
+    def Ssim(self, img, GT):
+        img_torch = torch.permute((img).unsqueeze(3),(3,2,0,1)).to(torch.float32).detach().cpu()
+        GT_torch = torch.permute(torch.from_numpy(GT).unsqueeze(3),(3,2,0,1)).to(torch.float32).detach().cpu()
+        ssim_val = SSIM()(img_torch, GT_torch/255.0)
         return ssim_val
 
-    def Lpips(self, GT, img):
-        GT_torch = torch.from_numpy(GT).reshape(1, 3, 480, 640)
-        img_torch = torch.from_numpy(img).reshape(1, 3, 480, 640)
-        lpips = LPIPS(normalize=True)((GT_torch/255.0), (img_torch/255.0))
+    def Lpips(self, img, GT):
+        img_torch = torch.permute((img).unsqueeze(3),(3,2,0,1)).to(torch.float32).detach().cpu()
+        GT_torch = torch.permute(torch.from_numpy(GT).unsqueeze(3),(3,2,0,1)).to(torch.float32).detach().cpu()
+        lpips = LPIPS(normalize=True)(img_torch, GT_torch/255.0)
         return lpips
 
 
@@ -584,9 +595,9 @@ class GaussianMapperUnrealNovel:
             self.CreateKeyframe(rgb, rgb_t, xyz_t, pose, kf_num)
             self.getNerfppNorm(pose)
 
-        world_view_transform = torch.inverse(pose).T.detach()
-        camera_center = torch.inverse(world_view_transform)[3, :3]
-        full_proj_transform = torch.matmul(world_view_transform, self.projection_matrix)
+        # world_view_transform = torch.inverse(pose).T.detach()
+        # camera_center = torch.inverse(world_view_transform)[3, :3]
+        # full_proj_transform = torch.matmul(world_view_transform, self.projection_matrix)
 
 
 
