@@ -11,6 +11,9 @@ from arguments import PipelineParams
 from gaussian_renderer import mg_render
 from argparse import ArgumentParser
 from utils.loss_utils import l1_loss, ssim
+from torchmetrics.image import PeakSignalNoiseRatio as PSNR
+from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
+from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity as LPIPS
 import random
 class GaussianMapperUnrealAllFrames:
     def __init__(self, dataset, parameters):
@@ -56,7 +59,7 @@ class GaussianMapperUnrealAllFrames:
         self.SP_superpixel_list = []
         self.SP_KF_num_list = []
         self.iteration_frame = []
-
+        self.NP_img_gt_list = []
         with torch.no_grad():
             self.SP_poses = torch.empty((4, 4, 0), dtype=torch.float32, device=self.device)
 
@@ -370,6 +373,7 @@ class GaussianMapperUnrealAllFrames:
             full_proj_transform = torch.matmul(world_view_transform, self.projection_matrix)
             self.SP_poses = torch.cat((self.SP_poses, pose.unsqueeze(dim=2)), dim=2)
 
+        self.NP_img_gt_list.append(rgb)
         self.SP_img_gt_list.append(img_gt)
         self.full_proj_transform_list.append(full_proj_transform.detach())
         self.world_view_transform_list.append(world_view_transform.detach())
@@ -381,12 +385,15 @@ class GaussianMapperUnrealAllFrames:
         lambda_dssim = 0.2
         sample_kf_index_list = list(range(self.SP_poses.shape[2]))
 
+        time = 0
         iter = 0
-        end_flag = False
-        for j in 1000000:
+        for j in range(100):
+            self.Evaluate(j)
+            iter_time = 0
             for i in sample_kf_index_list:
-                if iter % 100 == 0:
-                    print("Gaussian Optimization, iteration: ", iter)
+                start_time = time.time()
+                # if iter % 100 == 0:
+                #     print("Gaussian Optimization, iteration: ", iter)
                 img_gt = self.SP_img_gt_list[i].detach()
                 with torch.no_grad():
                     if iter % 1000 == 0:
@@ -408,33 +415,40 @@ class GaussianMapperUnrealAllFrames:
 
                 # densification
                 with torch.no_grad():
-                    if iter < 15000:
-                        # Keep track of max radii in image-space for pruning
-                        self.gaussian.max_radii2D[visibility_filter] = torch.max(
-                            self.gaussian.max_radii2D[visibility_filter],
-                            radii[visibility_filter])
-                        self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
-
-                        if iter > 500 and iter % 100 == 0:
-                            size_threshold = 20 if iter > 3000 else None
-                            self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
-                                                            self.size_threshold)
+                    # if iter < 15000:
+                    #     # Keep track of max radii in image-space for pruning
+                    #     self.gaussian.max_radii2D[visibility_filter] = torch.max(
+                    #         self.gaussian.max_radii2D[visibility_filter],
+                    #         radii[visibility_filter])
+                    #     self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
+                    # 
+                    #     if iter > 500 and iter % 100 == 0:
+                    #         size_threshold = 20 if iter > 3000 else None
+                    #         self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
+                    #                                         self.size_threshold)
 
                         # if iter % 3000 == 0 :
                         #     self.gaussian.reset_opacity()
 
                     self.gaussian.optimizer.step()
                     self.gaussian.optimizer.zero_grad(set_to_none=True)
+                end_time = time.time()
+                time += (end_time - start_time)
+                iter_time += (end_time - start_time)
                 iter += 1
+            print(j, "| avg optimization time: ", float(iter_time / (len(sample_kf_index_list))))
+        print("Final | avg optimization time: ", float(time / (len(sample_kf_index_list) * (100))))
+            #     if iter >= iteration_total:
+            #         end_flag = True
+            #         break
+            # if end_flag:
+            #     break
 
-                if iter >= iteration_total:
-                    end_flag = True
-                    break
-            if end_flag:
-                break
-
-    def Evalulate(self):
-        avg_PSNR = 0
+    def Evaluate(self, iter):
+        psnr_sum = 0
+        ssim_sum = 0
+        lpips_sum = 0
+        print("Evaluate: ", iter, self.SP_poses.shape[2])
         for i in range(0, self.SP_poses.shape[2]):
             viz_world_view_transform = self.world_view_transform_list[i]
             viz_full_proj_transform = self.full_proj_transform_list[i]
@@ -443,14 +457,24 @@ class GaussianMapperUnrealAllFrames:
                                    viz_full_proj_transform,
                                    viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
             img = render_pkg["render"]
-            np_render = (torch.permute(img, (1, 2, 0)).detach().cpu().numpy()*255).astype(np.uint8)
-            img_gt = (torch.permute(self.SP_img_gt_list[i].detach(), (1, 2, 0)).detach().cpu().numpy()*255).astype(np.uint8)
 
-            psnr_value = self.Psnr(np_render, img_gt, 1.0)
-            avg_PSNR+=psnr_value
-            kf_num = self.SP_KF_num_list[i]
-            print(f"PSNR {kf_num} : {psnr_value}")
-        print(f"AVG PSNR : {avg_PSNR/self.SP_poses.shape[2]}")
+            np_render_viz = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
+            torch_render_ssim = torch.permute(img, (1, 2, 0)).detach()
+            np_render_psnr = (np_render_viz * 255).astype(np.uint8)
+            np_render_ssim = torch.clamp(torch_render_ssim, 0, 1)
+
+            img_gt = self.NP_img_gt_list[i]
+            psnr_value = self.Psnr(np_render_psnr, img_gt)
+            psnr_sum += psnr_value
+            ssim_value = self.Ssim(torch_render_ssim, img_gt)
+            ssim_sum += ssim_value
+            lpips_value = self.Lpips(np_render_ssim, img_gt)
+            lpips_sum += lpips_value
+
+        print(f"{iter} | Avg_PSNR : {float(psnr_sum / len(self.NP_img_gt_list))}")
+        print(f"{iter} | Avg_SSIM : {float(ssim_sum / len(self.NP_img_gt_list))}")
+        print(f"{iter} | Avg_LPIPS : {float(lpips_sum / len(self.NP_img_gt_list))}")
+
 
     def Psnr(self, GT, img):
         mse = np.mean((GT - img) ** 2)
@@ -458,6 +482,18 @@ class GaussianMapperUnrealAllFrames:
             return 600
         PIXEL_MAX = 255
         return 20 * np.log10(PIXEL_MAX / np.sqrt(mse))
+
+    def Ssim(self, img, GT):
+        img_torch = torch.permute((img).unsqueeze(3),(3,2,0,1)).to(torch.float32).detach().cpu()
+        GT_torch = torch.permute(torch.from_numpy(GT).unsqueeze(3),(3,2,0,1)).to(torch.float32).detach().cpu()
+        ssim_val = SSIM()(img_torch, GT_torch/255.0)
+        return ssim_val
+
+    def Lpips(self, img, GT):
+        img_torch = torch.permute((img).unsqueeze(3),(3,2,0,1)).to(torch.float32).detach().cpu()
+        GT_torch = torch.permute(torch.from_numpy(GT).unsqueeze(3),(3,2,0,1)).to(torch.float32).detach().cpu()
+        lpips = LPIPS(normalize=True)(img_torch, GT_torch/255.0)
+        return lpips
 
     def Visualize(self):
         if self.SP_poses.shape[2] > 0:

@@ -225,16 +225,16 @@ if __name__ == '__main__':
     # process_gaussian_mapping = mp.Process(target=GaussianMappingTest, args=(dataset, parameters["gaussian"], mapping_result_q,))
 
     # A. 비 실시간 테스트 (모든 frame)
-    # process_tracking_unreal_all_frames = mp.Process(target=TrackingUnrealTimeAllFrames, args=(dataset, parameters, img_pair_q, tracking_result_q,))
-    # process_gaussian_mapping_unreal_all_frames = mp.Process(target=GaussianMappingUnrealTimeAllFrames, args=(dataset, parameters["gaussian"], tracking_result_q,))
+    process_tracking_unreal_all_frames = mp.Process(target=TrackingUnrealTimeAllFrames, args=(dataset, parameters, img_pair_q, tracking_result_q,))
+    process_gaussian_mapping_unreal_all_frames = mp.Process(target=GaussianMappingUnrealTimeAllFrames, args=(dataset, parameters["gaussian"], tracking_result_q,))
 
     # B. 비 실시간 테스트 (Keyframe selection)
     # process_tracking_unreal = mp.Process(target=TrackingUnrealTime, args=(dataset, parameters, img_pair_q, tracking_result_q,))
     # process_gaussian_mapping_unreal = mp.Process(target=GaussianMappingUnrealTime, args=(dataset, parameters["gaussian"], tracking_result_q,))
 
     # B.1 Novel-view 비 실시간 테스트 (Keyframe selection)
-    process_tracking_unreal = mp.Process(target=TrackingUnrealTime, args=(dataset, parameters, img_pair_q, tracking_result_q,))
-    process_gaussian_mapping_unreal_novel = mp.Process(target=GaussianMappingUnrealTimeNovel, args=(dataset, parameters["gaussian"], tracking_result_q,))
+    # process_tracking_unreal = mp.Process(target=TrackingUnrealTime, args=(dataset, parameters, img_pair_q, tracking_result_q,))
+    # process_gaussian_mapping_unreal_novel = mp.Process(target=GaussianMappingUnrealTimeNovel, args=(dataset, parameters["gaussian"], tracking_result_q,))
 
     # C. ByPass 테스트
     # process_tracking_bypass = mp.Process(target=TrackingByPass, args=(dataset, parameters, img_pair_q, tracking_result_q,))
@@ -245,16 +245,16 @@ if __name__ == '__main__':
     ####################################################################################################
 
     # A. 비 실시간 테스트 (모든 frame)
-    # process_gaussian_mapping_unreal_all_frames.start()
-    # process_tracking_unreal_all_frames.start()
+    process_gaussian_mapping_unreal_all_frames.start()
+    process_tracking_unreal_all_frames.start()
 
     # B. 비 실시간 테스트 (Keyframe selection)
     # process_gaussian_mapping_unreal.start()
     # process_tracking_unreal.start()
 
     # B.1 Novel-view 비 실시간 테스트 (Keyframe selection)
-    process_gaussian_mapping_unreal_novel.start()
-    process_tracking_unreal.start()
+    # process_gaussian_mapping_unreal_novel.start()
+    # process_tracking_unreal.start()
 
     # C. ByPass 테스트
     # process_gaussian_mapping_bypass.start()
@@ -273,16 +273,16 @@ if __name__ == '__main__':
     process_play_data.join()
 
     # A. 비 실시간 테스트 (모든 frame)
-    # process_tracking_unreal_all_frames.join()
-    # process_gaussian_mapping_unreal_all_frames.join()
+    process_tracking_unreal_all_frames.join()
+    process_gaussian_mapping_unreal_all_frames.join()
 
     # B. 비 실시간 테스트 (Keyframe selection)
     # process_tracking_unreal.join()
     # process_gaussian_mapping_unreal.join()
 
     # B.1 Novel-view 비 실시간 테스트 (Keyframe selection)
-    process_tracking_unreal.join()
-    process_gaussian_mapping_unreal_novel.join()
+    # process_tracking_unreal.join()
+    # process_gaussian_mapping_unreal_novel.join()
 
 
     # C. ByPass 테스트
