@@ -2,6 +2,7 @@ import os
 import numpy as np
 import cv2
 import utility
+from scipy.spatial.transform import Rotation as R
 
 class TumDataset():
     def __init__(self):
@@ -55,7 +56,7 @@ class TumDataset():
                     pass
                 pose = list(map(np.float32, line.split(' ')))
                 matrix = np.eye(4)
-                matrix[:3, :3] = utility.qvec2rotmat(pose[3:])
+                matrix[:3, :3] = R.from_quat(pose[3:]).as_matrix()
                 matrix[:3, 3] = pose[:3]
                 matrices.append(matrix)
 
@@ -65,7 +66,7 @@ class TumDataset():
         matrices = self.read_matrices()
         relative_poses = [np.identity(4)]
         for i in range(1, len(matrices)):
-            relative_pose = np.linalg.inv(matrices[0]) @ matrices[i]  # Relative pose calculation
+            relative_pose = np.dot(np.linalg.inv(matrices[0]), matrices[i])  # Relative pose calculation
             relative_poses.append(relative_pose)
         return relative_poses
 
