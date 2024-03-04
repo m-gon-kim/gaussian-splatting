@@ -383,7 +383,7 @@ class GaussianMapperUnrealAllFrames:
 
         iter = 0
         end_flag = False
-        while True:
+        for j in 1000000:
             for i in sample_kf_index_list:
                 if iter % 100 == 0:
                     print("Gaussian Optimization, iteration: ", iter)
@@ -407,23 +407,24 @@ class GaussianMapperUnrealAllFrames:
                 loss.backward()
 
                 # densification
-                if iter < 15000:
-                    # Keep track of max radii in image-space for pruning
-                    self.gaussian.max_radii2D[visibility_filter] = torch.max(
-                        self.gaussian.max_radii2D[visibility_filter],
-                        radii[visibility_filter])
-                    self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
+                with torch.no_grad():
+                    if iter < 15000:
+                        # Keep track of max radii in image-space for pruning
+                        self.gaussian.max_radii2D[visibility_filter] = torch.max(
+                            self.gaussian.max_radii2D[visibility_filter],
+                            radii[visibility_filter])
+                        self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
 
-                    if iter > 500 and iter % 100 == 0:
-                        size_threshold = 20 if iter > 3000 else None
-                        self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
-                                                        self.size_threshold)
+                        if iter > 500 and iter % 100 == 0:
+                            size_threshold = 20 if iter > 3000 else None
+                            self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
+                                                            self.size_threshold)
 
-                    # if iter % 3000 == 0 :
-                    #     self.gaussian.reset_opacity()
+                        # if iter % 3000 == 0 :
+                        #     self.gaussian.reset_opacity()
 
-                self.gaussian.optimizer.step()
-                self.gaussian.optimizer.zero_grad(set_to_none=True)
+                    self.gaussian.optimizer.step()
+                    self.gaussian.optimizer.zero_grad(set_to_none=True)
                 iter += 1
 
                 if iter >= iteration_total:

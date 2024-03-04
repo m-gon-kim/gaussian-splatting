@@ -516,19 +516,20 @@ class GaussianMapper:
 
             loss.backward()
 
-            self.gaussian.max_radii2D[visibility_filter] = torch.max(self.gaussian.max_radii2D[visibility_filter],
-                                                                     radii[visibility_filter])
-            self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
+            with torch.no_grad():
+                self.gaussian.max_radii2D[visibility_filter] = torch.max(self.gaussian.max_radii2D[visibility_filter],
+                                                                         radii[visibility_filter])
+                self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
 
-            if index%(self.insertion_densification_interval) == 0 and index > 0 \
-                    and optimization_i == optimization_i_threshold-1 :
-                print(f"PRUNE {self.iteration} {self.densification_interval}")
-                self.densification_interval = 0
-                self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
-                                                self.size_threshold)
+                if index%(self.insertion_densification_interval) == 0 and index > 0 \
+                        and optimization_i == optimization_i_threshold-1 :
+                    print(f"PRUNE {self.iteration} {self.densification_interval}")
+                    self.densification_interval = 0
+                    self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
+                                                    self.size_threshold)
 
-            self.gaussian.optimizer.step()
-            self.gaussian.optimizer.zero_grad(set_to_none=True)
+                self.gaussian.optimizer.step()
+                self.gaussian.optimizer.zero_grad(set_to_none=True)
             cntr+=1
             del img
 
@@ -561,17 +562,18 @@ class GaussianMapper:
 
                 loss.backward()
 
-                self.gaussian.max_radii2D[visibility_filter] = torch.max(self.gaussian.max_radii2D[visibility_filter],
-                                                                         radii[visibility_filter])
-                self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
+                with torch.no_grad():
+                    self.gaussian.max_radii2D[visibility_filter] = torch.max(self.gaussian.max_radii2D[visibility_filter],
+                                                                             radii[visibility_filter])
+                    self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
 
-                if Flag_densification and i%(self.full_optimization_densification_interval) == 0 and\
-                        optimization_i == int(optimization_i_threshold/2):
-                    self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
-                                                    self.size_threshold)
+                    if Flag_densification and i%(self.full_optimization_densification_interval) == 0 and\
+                            optimization_i == int(optimization_i_threshold/2):
+                        self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
+                                                        self.size_threshold)
 
-                self.gaussian.optimizer.step()
-                self.gaussian.optimizer.zero_grad(set_to_none=True)
+                    self.gaussian.optimizer.step()
+                    self.gaussian.optimizer.zero_grad(set_to_none=True)
                 del img
         torch.cuda.empty_cache()
     def OptimizeGaussian(self, Flag_densification):
@@ -618,16 +620,17 @@ class GaussianMapper:
 
                 loss.backward()
 
-                self.gaussian.max_radii2D[visibility_filter] = torch.max(self.gaussian.max_radii2D[visibility_filter],
-                                                                         radii[visibility_filter])
-                self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
-                if Flag_densification and i%10 == 0 and optimization_i == (0):
-                    print(f"PRUNE {self.iteration} ")
-                    self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
-                                                    self.size_threshold)
+                with torch.no_grad():
+                    self.gaussian.max_radii2D[visibility_filter] = torch.max(self.gaussian.max_radii2D[visibility_filter],
+                                                                             radii[visibility_filter])
+                    self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
+                    if Flag_densification and i%10 == 0 and optimization_i == (0):
+                        print(f"PRUNE {self.iteration} ")
+                        self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
+                                                        self.size_threshold)
 
-                self.gaussian.optimizer.step()
-                self.gaussian.optimizer.zero_grad(set_to_none=True)
+                    self.gaussian.optimizer.step()
+                    self.gaussian.optimizer.zero_grad(set_to_none=True)
                 del img
         torch.cuda.empty_cache()
 

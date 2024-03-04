@@ -10,6 +10,7 @@ from gaussian_mapping import GaussianMapper
 from tracking_unreal import TrackerUnreal
 from tracking_unreal_all_frames import TrackerUnrealAllFrames
 from gaussian_mapping_unreal import GaussianMapperUnreal
+from gaussian_mapping_unreal_novel import GaussianMapperUnrealNovel
 from gaussian_mapping_unreal_all_frames import GaussianMapperUnrealAllFrames
 from tracking_bypass import TrackerByPass
 from gaussian_mapping_bypass import GaussianMapperByPass
@@ -23,7 +24,7 @@ def PlayDataset(dataset, img_pair_q):
     for index in range(cnt):
         rgb, gray, d, pose = dataset.ReturnData(index + begin_index)
         img_pair_q.put([awake, [rgb, gray, d, pose]])
-    # img_pair_q.put([False, []])
+    img_pair_q.put([False, []])
 
 def TrackingUnrealTimeAllFrames(dataset, parameters, img_pair_q, tracking_result_q):
     tracker = TrackerUnrealAllFrames(dataset, parameters)
@@ -72,6 +73,25 @@ def TrackingUnrealTime(dataset, parameters, img_pair_q, tracking_result_q):
 
 def GaussianMappingUnrealTime(dataset, parameters, tracking_result_q):
     gaussian_mapper = GaussianMapperUnreal(dataset, parameters)
+
+    while True:
+        if not tracking_result_q.empty():
+            # q_size = img_pair_q.qsize()
+            # print(f"PROCESS: G-MAPPING Q {q_size}")
+            instance = tracking_result_q.get()
+            if instance[0]:
+                gaussian_mapper.AddGaussianFrame(instance[1])
+            else:  # Abort (System is not awake)
+                start_time = time.time()
+                gaussian_mapper.FullOptimizeGaussian()
+                end_time = time.time()
+                print("Elapsed time:", end_time - start_time, "seconds")
+                gaussian_mapper.Evalulate()
+                return
+
+
+def GaussianMappingUnrealTimeNovel(dataset, parameters, tracking_result_q):
+    gaussian_mapper = GaussianMapperUnrealNovel(dataset, parameters)
 
     while True:
         if not tracking_result_q.empty():
@@ -200,9 +220,9 @@ if __name__ == '__main__':
     ####################################################################################################
 
     process_play_data = mp.Process(target=PlayDataset, args=(dataset, img_pair_q,))
-    process_tracking_torch = mp.Process(target=TrackingTorch, args=(dataset, parameters["tracking"], img_pair_q, tracking_result_q,))
-    process_mapping = mp.Process(target=MTF_Mapping, args=(dataset, parameters["mapping"], tracking_result_q, mapping_result_q,))
-    process_gaussian_mapping = mp.Process(target=GaussianMappingTest, args=(dataset, parameters["gaussian"], mapping_result_q,))
+    # process_tracking_torch = mp.Process(target=TrackingTorch, args=(dataset, parameters["tracking"], img_pair_q, tracking_result_q,))
+    # process_mapping = mp.Process(target=MTF_Mapping, args=(dataset, parameters["mapping"], tracking_result_q, mapping_result_q,))
+    # process_gaussian_mapping = mp.Process(target=GaussianMappingTest, args=(dataset, parameters["gaussian"], mapping_result_q,))
 
     # A. 비 실시간 테스트 (모든 frame)
     # process_tracking_unreal_all_frames = mp.Process(target=TrackingUnrealTimeAllFrames, args=(dataset, parameters, img_pair_q, tracking_result_q,))
@@ -211,6 +231,10 @@ if __name__ == '__main__':
     # B. 비 실시간 테스트 (Keyframe selection)
     # process_tracking_unreal = mp.Process(target=TrackingUnrealTime, args=(dataset, parameters, img_pair_q, tracking_result_q,))
     # process_gaussian_mapping_unreal = mp.Process(target=GaussianMappingUnrealTime, args=(dataset, parameters["gaussian"], tracking_result_q,))
+
+    # B.1 Novel-view 비 실시간 테스트 (Keyframe selection)
+    process_tracking_unreal = mp.Process(target=TrackingUnrealTime, args=(dataset, parameters, img_pair_q, tracking_result_q,))
+    process_gaussian_mapping_unreal_novel = mp.Process(target=GaussianMappingUnrealTimeNovel, args=(dataset, parameters["gaussian"], tracking_result_q,))
 
     # C. ByPass 테스트
     # process_tracking_bypass = mp.Process(target=TrackingByPass, args=(dataset, parameters, img_pair_q, tracking_result_q,))
@@ -228,14 +252,18 @@ if __name__ == '__main__':
     # process_gaussian_mapping_unreal.start()
     # process_tracking_unreal.start()
 
+    # B.1 Novel-view 비 실시간 테스트 (Keyframe selection)
+    process_gaussian_mapping_unreal_novel.start()
+    process_tracking_unreal.start()
+
     # C. ByPass 테스트
     # process_gaussian_mapping_bypass.start()
     # process_tracking_bypass.start()
 
 
-    process_gaussian_mapping.start()
-    process_mapping.start()
-    process_tracking_torch.start()
+    # process_gaussian_mapping.start()
+    # process_mapping.start()
+    # process_tracking_torch.start()
     process_play_data.start()
 
 
@@ -252,11 +280,16 @@ if __name__ == '__main__':
     # process_tracking_unreal.join()
     # process_gaussian_mapping_unreal.join()
 
+    # B.1 Novel-view 비 실시간 테스트 (Keyframe selection)
+    process_tracking_unreal.join()
+    process_gaussian_mapping_unreal_novel.join()
+
+
     # C. ByPass 테스트
     # process_tracking_bypass.join()
     # process_gaussian_mapping_bypass.join()
 
-    process_tracking_torch.join()
-    process_mapping.join()
-    process_gaussian_mapping.join()
+    # process_tracking_torch.join()
+    # process_mapping.join()
+    # process_gaussian_mapping.join()
 

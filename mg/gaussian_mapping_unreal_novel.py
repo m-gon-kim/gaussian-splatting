@@ -11,8 +11,9 @@ from arguments import PipelineParams
 from gaussian_renderer import mg_render
 from argparse import ArgumentParser
 from utils.loss_utils import l1_loss, ssim
+
 import random
-class GaussianMapperByPass:
+class GaussianMapperUnrealNovel:
     def __init__(self, dataset, parameters):
         self.width = 640
         self.height = 480
@@ -56,6 +57,11 @@ class GaussianMapperByPass:
         self.SP_superpixel_list = []
         self.SP_KF_num_list = []
         self.iteration_frame = []
+        self.Eval_pose_list = []
+        self.Eval_img_list = []
+        self.Eval_full_proj_transform_list = []
+        self.Eval_world_view_transform_list = []
+        self.Eval_camera_center_list = []
 
         with torch.no_grad():
             self.SP_poses = torch.empty((4, 4, 0), dtype=torch.float32, device=self.device)
@@ -71,7 +77,6 @@ class GaussianMapperByPass:
         self.gaussian = GaussianModel(3, self.device)
         with torch.no_grad():
             self.background = torch.tensor([1, 1, 1], dtype=torch.float32, device=self.device)
-            #Mask
         self.cam_centers = []
         self.cameras_extent = 0
         self.size_threshold = 20
@@ -95,6 +100,11 @@ class GaussianMapperByPass:
         self.wireframe_camera_index = torch.tensor([[0, 1], [0, 2], [0, 3], [0, 4], [1, 2], [2, 3], [3, 4], [4, 1]], dtype=torch.int64, device=self.device)
         self.SetVizParams()
         self.loss_dict = {}
+
+
+        self.nv_pose_list = dataset.nv_relative_poses.copy()
+        self.nv_rgb_path_list = dataset.nv_rgb_list.copy()
+
 
 
 
@@ -375,63 +385,69 @@ class GaussianMapperByPass:
         self.world_view_transform_list.append(world_view_transform.detach())
         self.camera_center_list.append(camera_center.detach())
         self.SP_KF_num_list.append(KF_num)
-
-        # Gaussian
         self.gaussian.InitializeOptimizer()
-        self.CreateCameraWireframePoints(pose)
 
-    def InsertionOptimize(self):
-        lambda_dssim = 0.2
-        optimization_i_threshold = 10
-        index = len(self.SP_img_gt_list)-1
-        with torch.no_grad():
-            world_view_transform = self.world_view_transform_list[index]
-            full_proj_transform = self.full_proj_transform_list[index]
-            camera_center = self.camera_center_list[index]
+    def Evalulate(self):
+        for i, path in enumerate(self.nv_rgb_path_list):
+            gt_img = cv2.imread(path)
+            pose = self.nv_pose_list[i].detach().to(self.device)
+            self.Eval_pose_list.append(pose)
+            self.Eval_img_list.append(gt_img)
 
-        for optimization_i in range(optimization_i_threshold):
-            img_gt = self.SP_img_gt_list[index].detach()
-            render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, world_view_transform,
-                                   full_proj_transform, camera_center, self.gaussian, self.pipe, self.background,
-                                   1.0)
-            img, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg[
-                "viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
+            world_view_transform = torch.inverse(pose).T.detach()
+            camera_center = torch.inverse(world_view_transform)[3, :3]
+            full_proj_transform = torch.matmul(world_view_transform, self.projection_matrix)
+            self.Eval_full_proj_transform_list.append(full_proj_transform.detach())
+            self.Eval_world_view_transform_list.append(world_view_transform.detach())
+            self.Eval_camera_center_list.append(camera_center.detach())
 
-            Ll1 = l1_loss(img, img_gt)
-            loss = (1.0 - lambda_dssim) * Ll1 + lambda_dssim * (1.0 - ssim(img, img_gt))
-            self.loss_dict[index] = float(loss.detach())
+        psnr_sum = 0
+        for i in range(len(self.Eval_img_list)):
+            viz_world_view_transform = self.Eval_world_view_transform_list[i]
+            viz_full_proj_transform = self.Eval_full_proj_transform_list[i]
+            viz_camera_center = self.Eval_camera_center_list[i]
+            render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform,
+                                   viz_full_proj_transform,
+                                   viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
+            img = render_pkg["render"]
+            np_render_viz = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
+            np_render = (np_render_viz * 255).astype(np.uint8)
 
-            loss.backward()
+            img_gt = self.Eval_img_list[i]
+            psnr_value = self.Psnr(np_render, img_gt)
 
-            # self.gaussian.max_radii2D[visibility_filter] = torch.max(self.gaussian.max_radii2D[visibility_filter],
-            #                                                          radii[visibility_filter])
-            # self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
+            psnr_sum += psnr_value
+            print(f"PSNR {i} : {psnr_value}")
+            if i == 0 :
+                cv2.imshow("rendered psnr", np_render_viz)
+        print(f"Avg_PSNR : {float(psnr_sum / len(self.Eval_img_list))}")
+        cv2.waitKey(0)
 
-            # if index%(self.insertion_densification_interval) == 0 and index > 0 \
-            #         and optimization_i == 0 :
-            #     self.densification_interval = 0
-            #     self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
-            #                                     self.size_threshold)
 
-            with torch.no_grad():
-                self.gaussian.optimizer.step()
-                self.gaussian.optimizer.zero_grad(set_to_none=True)
+    def Psnr(self, GT, img):
+        mse = np.mean((GT - img) ** 2)
+        if mse == 0:
+            return 600
+        PIXEL_MAX = 255
+        return 20 * np.log10(PIXEL_MAX / np.sqrt(mse))
 
-    def FullOptimizeGaussian(self, iteration, densification_flag):
+
+    def FullOptimizeGaussian(self):
         lambda_dssim = 0.2
         sample_kf_index_list = list(range(self.SP_poses.shape[2]))
-        densification_interval = int(self.SP_poses.shape[2]/10)
 
-        if not (self.SP_poses.shape[2] % 5 == 0):
-            return
-        if self.SP_poses.shape[2] < 3:
-            return
-
+        iter = 0
         # self.gaussian.update_learning_rate(self.iteration)
-        for iter_i in range(iteration):
+        optimization_i_threshold = 10
+        for optimization_i in range(optimization_i_threshold):
+            if optimization_i % 10 == 0:
+                print("Gaussian Optimization, iteration: ", optimization_i)
             for i in sample_kf_index_list:
+
                 img_gt = self.SP_img_gt_list[i].detach()
                 with torch.no_grad():
+                    if iter % 10 == 0:
+                        self.gaussian.oneupSHdegree()
                     world_view_transform = self.world_view_transform_list[i]
                     full_proj_transform = self.full_proj_transform_list[i]
                     camera_center = self.camera_center_list[i]
@@ -446,19 +462,17 @@ class GaussianMapperByPass:
                 self.loss_dict[i] = float(loss.detach())
 
                 loss.backward()
-
                 with torch.no_grad():
-                    self.gaussian.max_radii2D[visibility_filter] = torch.max(self.gaussian.max_radii2D[visibility_filter],
-                                                                         radii[visibility_filter])
-                    self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
-
-                    if densification_flag and i%densification_interval == 0 and iter_i == 0:
-                        self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
-                                                        self.size_threshold)
-
+                    # self.gaussian.max_radii2D[visibility_filter] = torch.max(self.gaussian.max_radii2D[visibility_filter],
+                    #                                                          radii[visibility_filter])
+                    # self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
+                    # if iter % 1000 == 0 and iter > 500 and iter < 5001:
+                    #     self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
+                    #                                     self.size_threshold)
 
                     self.gaussian.optimizer.step()
                     self.gaussian.optimizer.zero_grad(set_to_none=True)
+                iter+=1
 
 
 
@@ -477,7 +491,7 @@ class GaussianMapperByPass:
                                        viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
                 img = render_pkg["render"]
                 np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
-
+                img_gt = torch.permute(self.SP_img_gt_list[i], (1, 2, 0)).detach().cpu().numpy()
                 window_x = (idx % 4) * 640
                 window_y = int(idx / 4) * 480
                 if idx > 11:
@@ -485,6 +499,7 @@ class GaussianMapperByPass:
                     window_y = int((idx-12) / 4) * 480
                 kf_num = self.SP_KF_num_list[i]
                 cv2.imshow(f"rendered{kf_num}", np_render)
+                cv2.imshow(f"rendered_gt{kf_num}", img_gt)
                 cv2.moveWindow(f"rendered{kf_num}", window_x, window_y)
 
             # Render all frames with predicted camera poses
@@ -531,14 +546,22 @@ class GaussianMapperByPass:
             cv2.waitKey(1)
 
     def AddGaussianFrame(self, instance):
+        tag = instance[0]
         sensor = instance[1]
         rgb = sensor[0]
-        xyz_t = torch.transpose((sensor[1].detach().to(self.device)), 1, 0)
-        rgb_t = sensor[2].detach().to(self.device)
-        pose = sensor[3].detach().to(self.device)
         kf_num = sensor[4]
+        pose = sensor[3].detach().to(self.device)
+        if tag[1]:
+            xyz_t = torch.transpose((sensor[1].detach().to(self.device)), 1, 0)
+            rgb_t = sensor[2].detach().to(self.device)
 
-        self.CreateKeyframe(rgb, rgb_t, xyz_t, pose, kf_num)
-        self.getNerfppNorm(pose)
+            self.CreateKeyframe(rgb, rgb_t, xyz_t, pose, kf_num)
+            self.getNerfppNorm(pose)
+
+        world_view_transform = torch.inverse(pose).T.detach()
+        camera_center = torch.inverse(world_view_transform)[3, :3]
+        full_proj_transform = torch.matmul(world_view_transform, self.projection_matrix)
+
+
 
 
