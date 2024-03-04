@@ -11,6 +11,9 @@ from arguments import PipelineParams
 from gaussian_renderer import mg_render
 from argparse import ArgumentParser
 from utils.loss_utils import l1_loss, ssim
+from torchmetrics.image import PeakSignalNoiseRatio as PSNR
+from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
+from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity as LPIPS
 
 import random
 class GaussianMapperUnrealNovel:
@@ -402,6 +405,8 @@ class GaussianMapperUnrealNovel:
             self.Eval_camera_center_list.append(camera_center.detach())
 
         psnr_sum = 0
+        ssim_sum = 0
+        lpips_sum = 0
         for i in range(len(self.Eval_img_list)):
             viz_world_view_transform = self.Eval_world_view_transform_list[i]
             viz_full_proj_transform = self.Eval_full_proj_transform_list[i]
@@ -415,21 +420,42 @@ class GaussianMapperUnrealNovel:
 
             img_gt = self.Eval_img_list[i]
             psnr_value = self.Psnr(np_render, img_gt)
-
             psnr_sum += psnr_value
-            print(f"PSNR {i} : {psnr_value}")
-            if i == 0 :
-                cv2.imshow("rendered psnr", np_render_viz)
+            ssim_value = self.Ssim(np_render, img_gt)
+            ssim_sum += ssim_value
+            lpips_value = self.Lpips(np_render, img_gt)
+            lpips_sum += lpips_value
+            print(f"PSNR {i} : {psnr_value}, SSIM {i} : {ssim_value}, LPIPS {i} : {lpips_value}")
         print(f"Avg_PSNR : {float(psnr_sum / len(self.Eval_img_list))}")
-        cv2.waitKey(0)
+        print(f"Avg_SSIM : {float(ssim_sum / len(self.Eval_img_list))}")
+        print(f"Avg_LPIPS : {float(lpips_sum / len(self.Eval_img_list))}")
 
 
+
+
+    # def Psnr(self, GT, img):
+    #     mse = np.mean((GT - img) ** 2)
+    #     if mse == 0:
+    #         return 600
+    #     PIXEL_MAX = 255
+    #     return 20 * np.log10(PIXEL_MAX / np.sqrt(mse))
     def Psnr(self, GT, img):
-        mse = np.mean((GT - img) ** 2)
-        if mse == 0:
-            return 600
-        PIXEL_MAX = 255
-        return 20 * np.log10(PIXEL_MAX / np.sqrt(mse))
+        GT_torch = torch.from_numpy(GT).reshape(1, 3, 480, 640)
+        img_torch = torch.from_numpy(img).reshape(1, 3, 480, 640)
+        psnr = PSNR()(GT_torch, img_torch)
+        return psnr
+
+    def Ssim(self, GT, img):
+        GT_torch = torch.from_numpy(GT).reshape(1, 3, 480, 640)
+        img_torch = torch.from_numpy(img).reshape(1, 3, 480, 640)
+        ssim_val = SSIM(data_range=255)(GT_torch.float(), img_torch.float())
+        return ssim_val
+
+    def Lpips(self, GT, img):
+        GT_torch = torch.from_numpy(GT).reshape(1, 3, 480, 640)
+        img_torch = torch.from_numpy(img).reshape(1, 3, 480, 640)
+        lpips = LPIPS(normalize=True)((GT_torch/255.0), (img_torch/255.0))
+        return lpips
 
 
     def FullOptimizeGaussian(self):
