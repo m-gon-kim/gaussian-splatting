@@ -60,12 +60,19 @@ def GaussianMappingUnrealTimeAllFrames(dataset, parameters, tracking_result_q):
 
 def TrackingUnrealTime(dataset, parameters, img_pair_q, tracking_result_q):
     tracker = TrackerUnreal(dataset, parameters)
+    TimerFlag = True
+    start_time = None
     while True:
         if not img_pair_q.empty():
+            if TimerFlag:
+                start_time = time.time()
+                TimerFlag = False
             instance = img_pair_q.get()
             if not instance[0]:  # Abort (System is not awake)
                 print("Tracking Abort")
                 tracking_result_q.put([False, []])
+                end_time = time.time()
+                print("Preprocessing, Elapsed time:", end_time - start_time, "seconds")
                 return
             tracking_result = tracker.SelectKF(instance)
             tracking_result_q.put([True, tracking_result])
@@ -85,8 +92,8 @@ def GaussianMappingUnrealTime(dataset, parameters, tracking_result_q):
                 start_time = time.time()
                 gaussian_mapper.FullOptimizeGaussian()
                 end_time = time.time()
-                print("Elapsed time:", end_time - start_time, "seconds")
-                gaussian_mapper.Evalulate()
+                print("Gaussian Elapsed time:", end_time - start_time, "seconds")
+                gaussian_mapper.Evaluate()
                 return
 
 
@@ -225,12 +232,12 @@ if __name__ == '__main__':
     # process_gaussian_mapping = mp.Process(target=GaussianMappingTest, args=(dataset, parameters["gaussian"], mapping_result_q,))
 
     # A. 비 실시간 테스트 (모든 frame)
-    process_tracking_unreal_all_frames = mp.Process(target=TrackingUnrealTimeAllFrames, args=(dataset, parameters, img_pair_q, tracking_result_q,))
-    process_gaussian_mapping_unreal_all_frames = mp.Process(target=GaussianMappingUnrealTimeAllFrames, args=(dataset, parameters["gaussian"], tracking_result_q,))
+    # process_tracking_unreal_all_frames = mp.Process(target=TrackingUnrealTimeAllFrames, args=(dataset, parameters, img_pair_q, tracking_result_q,))
+    # process_gaussian_mapping_unreal_all_frames = mp.Process(target=GaussianMappingUnrealTimeAllFrames, args=(dataset, parameters["gaussian"], tracking_result_q,))
 
     # B. 비 실시간 테스트 (Keyframe selection)
-    # process_tracking_unreal = mp.Process(target=TrackingUnrealTime, args=(dataset, parameters, img_pair_q, tracking_result_q,))
-    # process_gaussian_mapping_unreal = mp.Process(target=GaussianMappingUnrealTime, args=(dataset, parameters["gaussian"], tracking_result_q,))
+    process_tracking_unreal = mp.Process(target=TrackingUnrealTime, args=(dataset, parameters, img_pair_q, tracking_result_q,))
+    process_gaussian_mapping_unreal = mp.Process(target=GaussianMappingUnrealTime, args=(dataset, parameters["gaussian"], tracking_result_q,))
 
     # B.1 Novel-view 비 실시간 테스트 (Keyframe selection)
     # process_tracking_unreal = mp.Process(target=TrackingUnrealTime, args=(dataset, parameters, img_pair_q, tracking_result_q,))
@@ -245,12 +252,12 @@ if __name__ == '__main__':
     ####################################################################################################
 
     # A. 비 실시간 테스트 (모든 frame)
-    process_gaussian_mapping_unreal_all_frames.start()
-    process_tracking_unreal_all_frames.start()
+    # process_gaussian_mapping_unreal_all_frames.start()
+    # process_tracking_unreal_all_frames.start()
 
     # B. 비 실시간 테스트 (Keyframe selection)
-    # process_gaussian_mapping_unreal.start()
-    # process_tracking_unreal.start()
+    process_gaussian_mapping_unreal.start()
+    process_tracking_unreal.start()
 
     # B.1 Novel-view 비 실시간 테스트 (Keyframe selection)
     # process_gaussian_mapping_unreal_novel.start()
@@ -273,12 +280,12 @@ if __name__ == '__main__':
     process_play_data.join()
 
     # A. 비 실시간 테스트 (모든 frame)
-    process_tracking_unreal_all_frames.join()
-    process_gaussian_mapping_unreal_all_frames.join()
+    # process_tracking_unreal_all_frames.join()
+    # process_gaussian_mapping_unreal_all_frames.join()
 
     # B. 비 실시간 테스트 (Keyframe selection)
-    # process_tracking_unreal.join()
-    # process_gaussian_mapping_unreal.join()
+    process_tracking_unreal.join()
+    process_gaussian_mapping_unreal.join()
 
     # B.1 Novel-view 비 실시간 테스트 (Keyframe selection)
     # process_tracking_unreal.join()
