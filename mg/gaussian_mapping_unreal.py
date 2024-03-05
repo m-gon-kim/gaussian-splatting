@@ -11,6 +11,10 @@ from arguments import PipelineParams
 from gaussian_renderer import mg_render
 from argparse import ArgumentParser
 from utils.loss_utils import l1_loss, ssim
+from torchmetrics.image import PeakSignalNoiseRatio as PSNR
+from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
+from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity as LPIPS
+import time
 import random
 class GaussianMapperUnreal:
     def __init__(self, dataset, parameters):
@@ -381,8 +385,11 @@ class GaussianMapperUnreal:
         self.SP_KF_num_list.append(KF_num)
         self.gaussian.InitializeOptimizer()
 
-    def Evalulate(self):
+    def Evaluate(self):
         psnr_sum = 0
+        ssim_sum = 0
+        lpips_sum = 0
+        print("Evaluation with: ", len(self.Eval_img_list))
         for i in range(len(self.Eval_img_list)):
             viz_world_view_transform = self.Eval_world_view_transform_list[i]
             viz_full_proj_transform = self.Eval_full_proj_transform_list[i]
@@ -391,13 +398,24 @@ class GaussianMapperUnreal:
                                    viz_full_proj_transform,
                                    viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
             img = render_pkg["render"]
-            np_render = (torch.permute(img, (1, 2, 0)).detach().cpu().numpy()*255).astype(np.uint8)
+
+
+            np_render_viz = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
+            torch_render_ssim = torch.permute(img, (1, 2, 0)).detach()
+            np_render_psnr = (np_render_viz * 255).astype(np.uint8)
+            np_render_ssim = torch.clamp(torch_render_ssim, 0, 1)
 
             img_gt = self.Eval_img_list[i]
-            psnr_value = self.Psnr(np_render, img_gt)
+            psnr_value = self.Psnr(np_render_psnr, img_gt)
             psnr_sum += psnr_value
-            print(f"PSNR {i} : {psnr_value}")
-        print(f"Avg_PSNR : {float(psnr_sum/len(self.Eval_img_list))}")
+            ssim_value = self.Ssim(torch_render_ssim, img_gt)
+            ssim_sum += ssim_value
+            lpips_value = self.Lpips(np_render_ssim, img_gt)
+            lpips_sum += lpips_value
+
+        print(f"Avg_PSNR : {float(psnr_sum / len(self.Eval_img_list))}")
+        print(f"Avg_SSIM : {float(ssim_sum / len(self.Eval_img_list))}")
+        print(f"Avg_LPIPS : {float(lpips_sum / len(self.Eval_img_list))}")
 
     def Psnr(self, GT, img):
         mse = np.mean((GT - img) ** 2)
@@ -405,6 +423,18 @@ class GaussianMapperUnreal:
             return 600
         PIXEL_MAX = 255
         return 20 * np.log10(PIXEL_MAX / np.sqrt(mse))
+
+    def Ssim(self, img, GT):
+        img_torch = torch.permute((img).unsqueeze(3),(3,2,0,1)).to(torch.float32).detach().cpu()
+        GT_torch = torch.permute(torch.from_numpy(GT).unsqueeze(3),(3,2,0,1)).to(torch.float32).detach().cpu()
+        ssim_val = SSIM()(img_torch, GT_torch/255.0)
+        return ssim_val
+
+    def Lpips(self, img, GT):
+        img_torch = torch.permute((img).unsqueeze(3),(3,2,0,1)).to(torch.float32).detach().cpu()
+        GT_torch = torch.permute(torch.from_numpy(GT).unsqueeze(3),(3,2,0,1)).to(torch.float32).detach().cpu()
+        lpips = LPIPS(normalize=True)(img_torch, GT_torch/255.0)
+        return lpips
 
 
     def FullOptimizeGaussian(self):
@@ -414,9 +444,10 @@ class GaussianMapperUnreal:
         iter = 0
         # self.gaussian.update_learning_rate(self.iteration)
         optimization_i_threshold = 10
+        start_time = time.time()
         for optimization_i in range(optimization_i_threshold):
-            if optimization_i % 10 == 0:
-                print("Gaussian Optimization, iteration: ", optimization_i)
+            # if optimization_i % 10 == 0:
+            #     print("Gaussian Optimization, iteration: ", optimization_i)
             for i in sample_kf_index_list:
 
                 img_gt = self.SP_img_gt_list[i].detach()
@@ -450,8 +481,9 @@ class GaussianMapperUnreal:
                     self.gaussian.optimizer.step()
                     self.gaussian.optimizer.zero_grad(set_to_none=True)
                 iter+=1
+        end_time = time.time()
 
-
+        print("Optimization time:", end_time - start_time, "seconds")
 
     def Visualize(self):
         if self.SP_poses.shape[2] > 0:
