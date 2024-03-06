@@ -417,12 +417,18 @@ class GaussianMapperUnreal:
         print(f"Avg_SSIM : {float(ssim_sum / len(self.Eval_img_list))}")
         print(f"Avg_LPIPS : {float(lpips_sum / len(self.Eval_img_list))}")
 
-    def Psnr(self, GT, img):
-        mse = np.mean((GT - img) ** 2)
-        if mse == 0:
-            return 600
-        PIXEL_MAX = 255
-        return 20 * np.log10(PIXEL_MAX / np.sqrt(mse))
+    def Psnr(self, img, GT):
+        GT_torch = torch.from_numpy(GT).reshape(1, 3, 480, 640)
+        img_torch = torch.from_numpy(img).reshape(1, 3, 480, 640)
+        psnr = PSNR()(img_torch, GT_torch)
+        return psnr
+
+    # def Psnr(self, GT, img):
+    #     mse = np.mean((GT - img) ** 2)
+    #     if mse == 0:
+    #         return 600
+    #     PIXEL_MAX = 255
+    #     return 20 * np.log10(PIXEL_MAX / np.sqrt(mse))
 
     def Ssim(self, img, GT):
         img_torch = torch.permute((img).unsqueeze(3),(3,2,0,1)).to(torch.float32).detach().cpu()
@@ -449,7 +455,6 @@ class GaussianMapperUnreal:
             # if optimization_i % 10 == 0:
             #     print("Gaussian Optimization, iteration: ", optimization_i)
             for i in sample_kf_index_list:
-
                 img_gt = self.SP_img_gt_list[i].detach()
                 with torch.no_grad():
                     if iter % 10 == 0:
