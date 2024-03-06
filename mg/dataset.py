@@ -1,6 +1,7 @@
 from replica_dataset import ReplicaDataset
 from tum_dataset import TumDataset
 from scannet_dataset import ScannetDataset
+from replica_dataset2 import ReplicaDataset2
 import yaml
 
 class Dataset:
@@ -16,7 +17,8 @@ class Dataset:
         self.dataset_dict = {
             "TUM": TumDataset(),
             "REPLICA": ReplicaDataset(),
-            "SCANNET": ScannetDataset()
+            "SCANNET": ScannetDataset(),
+            "REPLICA2": ReplicaDataset2()
         }
         self.parameters = {}
         self.ReadParameters()
@@ -56,5 +58,6 @@ class Dataset:
 
 
     def InitializeDataset(self):
-        dataset = self.GetDataset()
+        dataset = self.dataset_dict.get(self.selected_dataset, TumDataset())
+        dataset.path = self.path_dict.get(self.selected_dataset, self.default_dataset_path)
         dataset.InitializeDataset()
