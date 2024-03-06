@@ -392,7 +392,7 @@ class GaussianMapperUnrealNovel:
         self.SP_KF_num_list.append(KF_num)
         self.gaussian.InitializeOptimizer()
 
-    def Evalulate(self):
+    def Evaluate(self):
         for i, path in enumerate(self.nv_rgb_path_list):
             gt_img = cv2.imread(path)
             pose = torch.from_numpy(self.nv_pose_list[i]).detach().to(self.device)
@@ -421,7 +421,6 @@ class GaussianMapperUnrealNovel:
             torch_render_ssim= torch.permute(img, (1, 2, 0)).detach()
             np_render_psnr = (np_render_viz * 255).astype(np.uint8)
             np_render_ssim = torch.clamp(torch_render_ssim, 0, 1)
-            np_render = (np_render_viz)
 
             img_gt = self.Eval_img_list[i]
             psnr_value = self.Psnr(np_render_psnr, img_gt)
@@ -430,13 +429,7 @@ class GaussianMapperUnrealNovel:
             ssim_sum += ssim_value
             lpips_value = self.Lpips(np_render_ssim, img_gt)
             lpips_sum += lpips_value
-            print(f"PSNR {i} : {psnr_value}, SSIM {i} : {ssim_value}, LPIPS {i} : {lpips_value}")
-            if i == 0:
-                cv2.imshow(f"rendered{i}", np_render)
-                cv2.imshow(f"rendered_gt{i}", img_gt)
-                cv2.waitKey(0)
-            # cv2.imshow(f"rendered{i}", np_render)
-            # cv2.imshow(f"rendered_gt{i}", img_gt)
+
         print(f"Avg_PSNR : {float(psnr_sum / len(self.Eval_img_list))}")
         print(f"Avg_SSIM : {float(ssim_sum / len(self.Eval_img_list))}")
         print(f"Avg_LPIPS : {float(lpips_sum / len(self.Eval_img_list))}")
@@ -477,10 +470,9 @@ class GaussianMapperUnrealNovel:
         # self.gaussian.update_learning_rate(self.iteration)
         optimization_i_threshold = 10
         for optimization_i in range(optimization_i_threshold):
-            if optimization_i % 10 == 0:
-                print("Gaussian Optimization, iteration: ", optimization_i)
+            # if optimization_i % 10 == 0:
+            #     print("Gaussian Optimization, iteration: ", optimization_i)
             for i in sample_kf_index_list:
-
                 img_gt = self.SP_img_gt_list[i].detach()
                 with torch.no_grad():
                     if iter % 10 == 0:
