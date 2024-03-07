@@ -93,6 +93,7 @@ def GaussianMappingUnrealTime(dataset, parameters, tracking_result_q):
                 gaussian_mapper.FullOptimizeGaussian()
                 end_time = time.time()
                 print("Gaussian Elapsed time:", end_time - start_time, "seconds")
+                # gaussian_mapper.Visualize()
                 gaussian_mapper.Evaluate()
                 return
 
@@ -112,7 +113,7 @@ def GaussianMappingUnrealTimeNovel(dataset, parameters, tracking_result_q):
                 gaussian_mapper.FullOptimizeGaussian()
                 end_time = time.time()
                 print("Elapsed time:", end_time - start_time, "seconds")
-                gaussian_mapper.Evalulate()
+                gaussian_mapper.Evaluate()
                 return
 
 
@@ -140,10 +141,10 @@ def GaussianMappingByPass(dataset, parameters, mapping_result_q):
                 gaussian_mapper.FullOptimizeGaussian(10, False)
             else:
                 gaussian_mapper.FullOptimizeGaussian(20, False)
-                gaussian_mapper.Visualize()
+                # gaussian_mapper.Visualize()
                 cv2.waitKey(0)
                 return
-        gaussian_mapper.Visualize()
+        # gaussian_mapper.Visualize()
 
 def TrackingTorch(dataset, parameters, img_pair_q, tracking_result_q):
     tracker = TrackerTorch(dataset, parameters)

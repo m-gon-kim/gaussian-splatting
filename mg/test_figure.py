@@ -16,6 +16,9 @@ contour = cv2.imread(path_con)
 path_depth = "C:/lab/research/eccv_fig/concept/depth.png"
 depth = cv2.imread(path_depth)
 
+path_rgb = "C:/lab/research/dataset/Replica/room0/pair/rgb/00001.png"
+rgb = cv2.imread(path_rgb)
+
 updated_contour = contour.copy()
 updated_d = depth.copy()
 
@@ -23,6 +26,15 @@ print(updated_contour.shape)
 
 mask = np.all(updated_contour == [100, 255, 100], axis=-1)
 
+slic = cv2.ximgproc.createSuperpixelSLIC(rgb, algorithm=102, region_size=30, ruler=64)
+slic.iterate(1)
+num_slic = slic.getNumberOfSuperpixels()
+print((num_slic))
+lsc_mask = slic.getLabelContourMask()
+contour_img = rgb.copy()
+contour_img[lsc_mask == 255] = [0, 0, 255]  # Green color for contours
+cv2.imshow("super", contour_img)
+cv2.waitKey(0)
 
 # Replace pixels in the image where the mask is True with the new RGB value (0, 255, 0)
 updated_contour[mask] = [255, 0, 0]
@@ -46,6 +58,4 @@ for v in range(mask.shape[0]):
 
 cv2.imshow("s", updated_contour)
 cv2.waitKey(0)
-cv2.imwrite("C:/lab/research/eccv_fig/concept/contour_update_img.png", updated_contour)
-cv2.imwrite("C:/lab/research/eccv_fig/concept/contour_update_d.png", updated_d)
 

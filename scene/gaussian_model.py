@@ -472,7 +472,7 @@ class GaussianModel:
 
             dist2 = torch.clamp_min(distCUDA2(fused_point_cloud), 0.0000001)
             # print(dist2)
-            scales = torch.log(torch.sqrt(dist2))[..., None].repeat(1, 3)*1.8
+            scales = torch.log(torch.sqrt(dist2))[..., None].repeat(1, 3)
             rots = torch.zeros((fused_point_cloud.shape[0], 4), dtype=torch.float32, device=self.device)
             rots[:, 0] = 1
 

@@ -14,8 +14,8 @@ from utils.loss_utils import l1_loss, ssim
 import random
 class GaussianMapperByPass:
     def __init__(self, dataset, parameters):
-        self.width = 640
-        self.height = 480
+        self.width = 1200
+        self.height = 680
         self.device = "cuda"
         with torch.no_grad():
             self.projection_matrix = None
@@ -95,7 +95,7 @@ class GaussianMapperByPass:
         self.wireframe_camera_index = torch.tensor([[0, 1], [0, 2], [0, 3], [0, 4], [1, 2], [2, 3], [3, 4], [4, 1]], dtype=torch.int64, device=self.device)
         self.SetVizParams()
         self.loss_dict = {}
-
+        self.scale_factor = 0.4
 
 
 
@@ -143,10 +143,10 @@ class GaussianMapperByPass:
     def SetProjectionMatrix(self, dataset):
         fx, fy = dataset.get_camera_intrinsic()[:2]
 
-        FoVx = 2 * math.atan(640 / (2 * fx))
-        FoVy = 2 * math.atan(480 / (2 * fy))
-        FoVx_wide = 2 * math.atan(640 / (2 * fx / self.wide_ratio))
-        FoVy_wide = 2 * math.atan(480 / (2 * fy / self.wide_ratio))
+        FoVx = 2 * math.atan(1200 / (2 * fx))
+        FoVy = 2 * math.atan(680 / (2 * fy))
+        FoVx_wide = 2 * math.atan(1200 / (2 * fx / self.wide_ratio))
+        FoVy_wide = 2 * math.atan(680 / (2 * fy / self.wide_ratio))
         with torch.no_grad():
             self.FoVx = torch.tensor(FoVx, dtype=torch.float32, device=self.device)
             self.FoVy = torch.tensor(FoVy, dtype=torch.float32, device=self.device)
@@ -227,9 +227,9 @@ class GaussianMapperByPass:
 
         with torch.no_grad():
             pose2 = torch.eye(4, dtype=torch.float32, device=self.device)
-            x_rot_degree = -30
-            y_rot_degree = 0
-            z_rot_degree = 0
+            x_rot_degree = 10
+            y_rot_degree = 20
+            z_rot_degree = 5
             x_rot = x_rot_degree * (math.pi / 180)
             y_rot = y_rot_degree * (math.pi / 180)
             z_rot = z_rot_degree * (math.pi / 180)
@@ -240,7 +240,7 @@ class GaussianMapperByPass:
             rot = torch.matmul(torch.matmul(x_rot_mat, y_rot_mat), z_rot_mat)
             pose2[:3, :3] = rot
 
-            trans = torch.tensor([0.3, -1.5, -2.5], dtype=torch.float32, device=self.device)
+            trans = torch.tensor([-0.5, 1.5, -3], dtype=torch.float32, device=self.device)
             pose2[:3, 3] = trans
 
             camera_center2 = pose2.T[3, :3].detach()
@@ -384,6 +384,20 @@ class GaussianMapperByPass:
         lambda_dssim = 0.2
         optimization_i_threshold = 10
         index = len(self.SP_img_gt_list)-1
+
+        viz_world_view_transform = self.viz_world_view_transform_list[1].detach()
+        viz_full_proj_transform = self.viz_full_proj_transform_list[1].detach()
+        viz_camera_center = self.viz_camera_center_list[1].detach()
+
+        render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform,
+                               viz_full_proj_transform, viz_camera_center, self.gaussian, self.pipe, self.background,
+                               self.scale_factor)
+        img_viz = render_pkg["render"]
+
+        np_render_viz = torch.permute(img_viz, (1, 2, 0)).detach().cpu().numpy()
+        cv2.imshow("optimize", np_render_viz)
+        cv2.waitKey(1)
+
         with torch.no_grad():
             world_view_transform = self.world_view_transform_list[index]
             full_proj_transform = self.full_proj_transform_list[index]
@@ -393,7 +407,7 @@ class GaussianMapperByPass:
             img_gt = self.SP_img_gt_list[index].detach()
             render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, world_view_transform,
                                    full_proj_transform, camera_center, self.gaussian, self.pipe, self.background,
-                                   1.0)
+                                   self.scale_factor)
             img, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg[
                 "viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
 
@@ -402,7 +416,9 @@ class GaussianMapperByPass:
             self.loss_dict[index] = float(loss.detach())
 
             loss.backward()
-
+            # np_render_viz = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
+            # cv2.imshow("during opt", np_render_viz)
+            # cv2.waitKey(1)
             # self.gaussian.max_radii2D[visibility_filter] = torch.max(self.gaussian.max_radii2D[visibility_filter],
             #                                                          radii[visibility_filter])
             # self.gaussian.add_densification_stats(viewspace_point_tensor, visibility_filter)
@@ -413,6 +429,15 @@ class GaussianMapperByPass:
             #     self.gaussian.densify_and_prune(self.densify_grad_threshold, 0.005, self.cameras_extent,
             #                                     self.size_threshold)
 
+            render_pkg2 = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform,
+                                   viz_full_proj_transform, viz_camera_center, self.gaussian, self.pipe,
+                                   self.background,
+                                   self.scale_factor)
+            img_viz2 = render_pkg2["render"]
+
+            np_render_viz2 = torch.permute(img_viz2, (1, 2, 0)).detach().cpu().numpy()
+            cv2.imshow("optimize", np_render_viz2)
+            cv2.waitKey(1)
             with torch.no_grad():
                 self.gaussian.optimizer.step()
                 self.gaussian.optimizer.zero_grad(set_to_none=True)
@@ -437,7 +462,7 @@ class GaussianMapperByPass:
                     camera_center = self.camera_center_list[i]
                 render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, world_view_transform,
                                        full_proj_transform, camera_center, self.gaussian, self.pipe, self.background,
-                                       1.0)
+                                       self.scale_factor)
                 img, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg[
                     "viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
 
@@ -474,7 +499,7 @@ class GaussianMapperByPass:
                 viz_camera_center = self.camera_center_list[i]
                 render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform,
                                        viz_full_proj_transform,
-                                       viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
+                                       viz_camera_center, self.gaussian, self.pipe, self.background, self.scale_factor)
                 img = render_pkg["render"]
                 np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
 
@@ -499,14 +524,14 @@ class GaussianMapperByPass:
             third_w_center = self.third_camera_center
 
             render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, all_world_view_transform, all_full_proj_transform,
-                                   all_camera_center, self.gaussian, self.pipe, self.background, 1.0)
+                                   all_camera_center, self.gaussian, self.pipe, self.background, self.scale_factor)
             img = render_pkg["render"]
             # print(img)
             np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
             cv2.imshow(f"sw", np_render)
 
             render_third_pkg = mg_render(self.FoVx_wide, self.FoVy_wide, self.height, self.width, third_world_view_transform, third_full_proj_transform,
-                                      third_w_center, self.gaussian, self.pipe, self.background, 1.0)
+                                      third_w_center, self.gaussian, self.pipe, self.background, self.scale_factor)
             img_third = render_third_pkg["render"]
             # print(img)
             np_render_third = torch.permute(img_third, (1, 2, 0)).detach().cpu().numpy().copy()
@@ -521,7 +546,7 @@ class GaussianMapperByPass:
                 viz_full_proj_transform = self.viz_full_proj_transform_list[i]
                 viz_camera_center = self.viz_camera_center_list[i]
                 render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform, viz_full_proj_transform,
-                                       viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
+                                       viz_camera_center, self.gaussian, self.pipe, self.background, self.scale_factor)
                 img = render_pkg["render"]  #GRB
                 np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy().copy()    #RGB
                 if i == 1:
