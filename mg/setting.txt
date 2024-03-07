@@ -1,10 +1,10 @@
-selected_dataset = REPLICA2
+selected_dataset = REPLICA
 
 dataset_type = TUM
 path = C:\Users\seohyun423\sp_slam\dataset\TUM_RGBD\rgbd_dataset_freiburg1_desk2\
 
 dataset_type = REPLICA
-path = C:/lab/research/dataset/Replica/room_0/Sequence_1/
+path = C:/lab/research/dataset/Replica_old/room_0/Sequence_1/
 novel_view_path = C:/lab/research/dataset/Replica/office_4/Sequence_2/
 
 dataset_type = SCANNET

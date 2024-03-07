@@ -18,8 +18,8 @@ import time
 import random
 class GaussianMapperUnreal:
     def __init__(self, dataset, parameters):
-        self.width = 1200
-        self.height = 680
+        self.width = 640
+        self.height = 480
         self.device = "cuda"
         with torch.no_grad():
             self.projection_matrix = None
@@ -105,7 +105,7 @@ class GaussianMapperUnreal:
         self.loss_dict = {}
 
         self.scale_factor = 0.4
-        self.super_region = 30
+        self.super_region = 16
 
 
     def SetIntrinsics(self, dataset):
@@ -152,10 +152,10 @@ class GaussianMapperUnreal:
     def SetProjectionMatrix(self, dataset):
         fx, fy = dataset.get_camera_intrinsic()[:2]
 
-        FoVx = 2 * math.atan(1200 / (2 * fx))
-        FoVy = 2 * math.atan(680 / (2 * fy))
-        FoVx_wide = 2 * math.atan(1200 / (2 * fx / self.wide_ratio))
-        FoVy_wide = 2 * math.atan(680 / (2 * fy / self.wide_ratio))
+        FoVx = 2 * math.atan(self.width / (2 * fx))
+        FoVy = 2 * math.atan(self.height / (2 * fy))
+        FoVx_wide = 2 * math.atan(self.width / (2 * fx / self.wide_ratio))
+        FoVy_wide = 2 * math.atan(self.height / (2 * fy / self.wide_ratio))
         with torch.no_grad():
             self.FoVx = torch.tensor(FoVx, dtype=torch.float32, device=self.device)
             self.FoVy = torch.tensor(FoVy, dtype=torch.float32, device=self.device)
@@ -439,16 +439,16 @@ class GaussianMapperUnreal:
             psnr_sum += psnr_value
             ssim_value = self.Ssim(torch_render_ssim, img_gt)
             ssim_sum += ssim_value
-            # lpips_value = self.Lpips(np_render_ssim, img_gt)
-            # lpips_sum += lpips_value
+            lpips_value = self.Lpips(np_render_ssim, img_gt)
+            lpips_sum += lpips_value
 
         print(f"Avg_PSNR : {float(psnr_sum / len(self.Eval_img_list))}")
         print(f"Avg_SSIM : {float(ssim_sum / len(self.Eval_img_list))}")
         print(f"Avg_LPIPS : {float(lpips_sum / len(self.Eval_img_list))}")
 
     def Psnr(self, img, GT):
-        GT_torch = torch.from_numpy(GT).reshape(1, 3, 680, 1200)
-        img_torch = torch.from_numpy(img).reshape(1, 3, 680, 1200)
+        GT_torch = torch.from_numpy(GT).reshape(1, 3, self.height, self.width)
+        img_torch = torch.from_numpy(img).reshape(1, 3, self.height, self.width)
         psnr = PSNR()(img_torch, GT_torch)
         return psnr
 
