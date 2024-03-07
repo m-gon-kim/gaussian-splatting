@@ -18,8 +18,8 @@ import time
 import random
 class GaussianMapperUnreal:
     def __init__(self, dataset, parameters):
-        self.width = 640
-        self.height = 480
+        self.width = 1200
+        self.height = 680
         self.device = "cuda"
         with torch.no_grad():
             self.projection_matrix = None
@@ -104,7 +104,8 @@ class GaussianMapperUnreal:
         self.SetVizParams()
         self.loss_dict = {}
 
-
+        self.scale_factor = 0.4
+        self.super_region = 30
 
 
     def SetIntrinsics(self, dataset):
@@ -151,10 +152,10 @@ class GaussianMapperUnreal:
     def SetProjectionMatrix(self, dataset):
         fx, fy = dataset.get_camera_intrinsic()[:2]
 
-        FoVx = 2 * math.atan(640 / (2 * fx))
-        FoVy = 2 * math.atan(480 / (2 * fy))
-        FoVx_wide = 2 * math.atan(640 / (2 * fx / self.wide_ratio))
-        FoVy_wide = 2 * math.atan(480 / (2 * fy / self.wide_ratio))
+        FoVx = 2 * math.atan(1200 / (2 * fx))
+        FoVy = 2 * math.atan(680 / (2 * fy))
+        FoVx_wide = 2 * math.atan(1200 / (2 * fx / self.wide_ratio))
+        FoVy_wide = 2 * math.atan(680 / (2 * fy / self.wide_ratio))
         with torch.no_grad():
             self.FoVx = torch.tensor(FoVx, dtype=torch.float32, device=self.device)
             self.FoVy = torch.tensor(FoVy, dtype=torch.float32, device=self.device)
@@ -235,9 +236,9 @@ class GaussianMapperUnreal:
 
         with torch.no_grad():
             pose2 = torch.eye(4, dtype=torch.float32, device=self.device)
-            x_rot_degree = -30
-            y_rot_degree = 0
-            z_rot_degree = 0
+            x_rot_degree = 10
+            y_rot_degree = 20
+            z_rot_degree = 5
             x_rot = x_rot_degree * (math.pi / 180)
             y_rot = y_rot_degree * (math.pi / 180)
             z_rot = z_rot_degree * (math.pi / 180)
@@ -248,7 +249,35 @@ class GaussianMapperUnreal:
             rot = torch.matmul(torch.matmul(x_rot_mat, y_rot_mat), z_rot_mat)
             pose2[:3, :3] = rot
 
-            trans = torch.tensor([0.3, -1.5, -2.5], dtype=torch.float32, device=self.device)
+            trans = torch.tensor([-0.5, 1.5, -3], dtype=torch.float32, device=self.device)
+            pose2[:3, 3] = trans
+
+            camera_center2 = pose2.T[3, :3].detach()
+            world_view_transform2 = torch.inverse(pose2).T.detach()
+            full_proj_transform2 = torch.matmul(world_view_transform2, self.projection_matrix)
+            # self.viz_full_proj_transform_list.append((world_view_transform2.detach().cpu().unsqueeze(0).bmm(
+            #     (self.projection_matrix).detach().cpu().unsqueeze(0))).squeeze(0).type(torch.FloatTensor).to(
+            #     self.device))
+        self.viz_full_proj_transform_list.append(full_proj_transform2.detach())
+        self.viz_world_view_transform_list.append(world_view_transform2.detach())
+        self.viz_camera_center_list.append(camera_center2.detach())
+
+        with torch.no_grad():
+            pose2 = torch.eye(4, dtype=torch.float32, device=self.device)
+            x_rot_degree = 45
+            y_rot_degree = 200
+            z_rot_degree = 7
+            x_rot = x_rot_degree * (math.pi / 180)
+            y_rot = y_rot_degree * (math.pi / 180)
+            z_rot = z_rot_degree * (math.pi / 180)
+
+            x_rot_mat = torch.tensor([[1, 0, 0], [0, math.cos(x_rot), -math.sin(x_rot)], [0, math.sin(x_rot), math.cos(x_rot)]], dtype=torch.float32, device=self.device)
+            y_rot_mat = torch.tensor([[math.cos(y_rot), 0, math.sin(y_rot)], [0, 1, 0], [-math.sin(y_rot), 0, math.cos(y_rot)]], dtype=torch.float32, device=self.device)
+            z_rot_mat = torch.tensor([[math.cos(z_rot), -math.sin(z_rot), 0], [math.sin(z_rot), math.cos(z_rot), 0], [0, 0, 1]], dtype=torch.float32, device=self.device)
+            rot = torch.matmul(torch.matmul(x_rot_mat, y_rot_mat), z_rot_mat)
+            pose2[:3, :3] = rot
+
+            trans = torch.tensor([2.0, -2.0, 3.2], dtype=torch.float32, device=self.device)
             pose2[:3, 3] = trans
 
             camera_center2 = pose2.T[3, :3].detach()
@@ -396,7 +425,7 @@ class GaussianMapperUnreal:
             viz_camera_center = self.Eval_camera_center_list[i]
             render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform,
                                    viz_full_proj_transform,
-                                   viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
+                                   viz_camera_center, self.gaussian, self.pipe, self.background, self.scale_factor)
             img = render_pkg["render"]
 
 
@@ -410,16 +439,16 @@ class GaussianMapperUnreal:
             psnr_sum += psnr_value
             ssim_value = self.Ssim(torch_render_ssim, img_gt)
             ssim_sum += ssim_value
-            lpips_value = self.Lpips(np_render_ssim, img_gt)
-            lpips_sum += lpips_value
+            # lpips_value = self.Lpips(np_render_ssim, img_gt)
+            # lpips_sum += lpips_value
 
         print(f"Avg_PSNR : {float(psnr_sum / len(self.Eval_img_list))}")
         print(f"Avg_SSIM : {float(ssim_sum / len(self.Eval_img_list))}")
         print(f"Avg_LPIPS : {float(lpips_sum / len(self.Eval_img_list))}")
 
     def Psnr(self, img, GT):
-        GT_torch = torch.from_numpy(GT).reshape(1, 3, 480, 640)
-        img_torch = torch.from_numpy(img).reshape(1, 3, 480, 640)
+        GT_torch = torch.from_numpy(GT).reshape(1, 3, 680, 1200)
+        img_torch = torch.from_numpy(img).reshape(1, 3, 680, 1200)
         psnr = PSNR()(img_torch, GT_torch)
         return psnr
 
@@ -444,13 +473,42 @@ class GaussianMapperUnreal:
 
 
     def FullOptimizeGaussian(self):
+        print("scale: ", self.scale_factor, " super_region: ", self.super_region)
         lambda_dssim = 0.2
         sample_kf_index_list = list(range(self.SP_poses.shape[2]))
+        # scale_factor = self.scale_factor
+        # scale_string = f"{scale_factor}"
+        # scale_path = scale_string[0]+"_"+scale_string[2]
+        # path1 = f"C:/lab/research/eccv_fig/video/pre_proc/scene1/sc{scale_path}_sp_{self.super_region}/"
+        # viz_world_view_transform1 = self.viz_world_view_transform_list[1].detach()
+        # viz_full_proj_transform1 = self.viz_full_proj_transform_list[1].detach()
+        # viz_camera_center1 = self.viz_camera_center_list[1].detach()
+        #
+        # render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform1,
+        #                        viz_full_proj_transform1, viz_camera_center1, self.gaussian, self.pipe, self.background,
+        #                        scale_factor)
+        # img_viz = render_pkg["render"]
+        #
+        # np_render_viz = torch.permute(img_viz, (1, 2, 0)).detach().cpu().numpy()
+        # cv2.imwrite(path1+"iter_0.png", np_render_viz*255)
+        #
+        # path2 = f"C:/lab/research/eccv_fig/video/pre_proc/scene2/sc{scale_path}_sp_{self.super_region}/"
+        # viz_world_view_transform2 = self.viz_world_view_transform_list[2].detach()
+        # viz_full_proj_transform2 = self.viz_full_proj_transform_list[2].detach()
+        # viz_camera_center2 = self.viz_camera_center_list[2].detach()
+        #
+        # render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform2,
+        #                        viz_full_proj_transform2, viz_camera_center2, self.gaussian, self.pipe, self.background,
+        #                        scale_factor)
+        # img_viz = render_pkg["render"]
+        #
+        # np_render_viz = torch.permute(img_viz, (1, 2, 0)).detach().cpu().numpy()
+        # cv2.imwrite(path2 + "iter_0.png", np_render_viz * 255)
 
         iter = 0
         # self.gaussian.update_learning_rate(self.iteration)
         optimization_i_threshold = 10
-        start_time = time.time()
+        # start_time = time.time()
         for optimization_i in range(optimization_i_threshold):
             # if optimization_i % 10 == 0:
             #     print("Gaussian Optimization, iteration: ", optimization_i)
@@ -464,9 +522,10 @@ class GaussianMapperUnreal:
                     camera_center = self.camera_center_list[i]
                 render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, world_view_transform,
                                        full_proj_transform, camera_center, self.gaussian, self.pipe, self.background,
-                                       1.0)
+                                       self.scale_factor)
                 img, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg[
                     "viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
+
 
                 Ll1 = l1_loss(img, img_gt)
                 loss = (1.0 - lambda_dssim) * Ll1 + lambda_dssim * (1.0 - ssim(img, img_gt))
@@ -486,9 +545,30 @@ class GaussianMapperUnreal:
                     self.gaussian.optimizer.step()
                     self.gaussian.optimizer.zero_grad(set_to_none=True)
                 iter+=1
-        end_time = time.time()
 
-        print("Optimization time:", end_time - start_time, "seconds")
+                # # render_pkg2 = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform1,
+                # #                        viz_full_proj_transform1, viz_camera_center1, self.gaussian, self.pipe,
+                # #                        self.background,
+                # #                        scale_factor)
+                # # img_viz = render_pkg2["render"]
+                # #
+                # # np_render_viz2 = torch.permute(img_viz, (1, 2, 0)).detach().cpu().numpy()
+                # # cv2.imwrite(path1 + f"iter_{iter+1}.png", np_render_viz2*255)
+                # #
+                # # render_pkg2 = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform2,
+                # #                         viz_full_proj_transform2, viz_camera_center2, self.gaussian, self.pipe,
+                # #                         self.background,
+                # #                         scale_factor)
+                # # img_viz = render_pkg2["render"]
+                #
+                # np_render_viz2 = torch.permute(img_viz, (1, 2, 0)).detach().cpu().numpy()
+                # cv2.imwrite(path2 + f"iter_{iter + 1}.png", np_render_viz2 * 255)
+                # cv2.imshow("optimize", np_render_viz2)
+                # cv2.waitKey(10)
+        # end_time = time.time()
+
+        # print("Total Optimization time:", end_time - start_time)
+        # print("Avg Optimization time:", (end_time - start_time)/(optimization_i_threshold * len(sample_kf_index_list)))
 
     def Visualize(self):
         if self.SP_poses.shape[2] > 0:
@@ -502,7 +582,7 @@ class GaussianMapperUnreal:
                 viz_camera_center = self.camera_center_list[i]
                 render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform,
                                        viz_full_proj_transform,
-                                       viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
+                                       viz_camera_center, self.gaussian, self.pipe, self.background, 0.4)
                 img = render_pkg["render"]
                 np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
                 img_gt = torch.permute(self.SP_img_gt_list[i], (1, 2, 0)).detach().cpu().numpy()
@@ -528,14 +608,14 @@ class GaussianMapperUnreal:
             third_w_center = self.third_camera_center
 
             render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, all_world_view_transform, all_full_proj_transform,
-                                   all_camera_center, self.gaussian, self.pipe, self.background, 1.0)
+                                   all_camera_center, self.gaussian, self.pipe, self.background, 0.4)
             img = render_pkg["render"]
             # print(img)
             np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
             cv2.imshow(f"sw", np_render)
 
             render_third_pkg = mg_render(self.FoVx_wide, self.FoVy_wide, self.height, self.width, third_world_view_transform, third_full_proj_transform,
-                                      third_w_center, self.gaussian, self.pipe, self.background, 1.0)
+                                      third_w_center, self.gaussian, self.pipe, self.background, 0.4)
             img_third = render_third_pkg["render"]
             # print(img)
             np_render_third = torch.permute(img_third, (1, 2, 0)).detach().cpu().numpy().copy()
@@ -550,14 +630,15 @@ class GaussianMapperUnreal:
                 viz_full_proj_transform = self.viz_full_proj_transform_list[i]
                 viz_camera_center = self.viz_camera_center_list[i]
                 render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform, viz_full_proj_transform,
-                                       viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
+                                       viz_camera_center, self.gaussian, self.pipe, self.background, 0.4)
                 img = render_pkg["render"]  #GRB
                 np_render = torch.permute(img, (1, 2, 0)).detach().cpu().numpy().copy()    #RGB
                 if i == 1:
                     self.DrawCameraWireframes(np_render, viz_camera_center, self.intr)
+
                 cv2.imshow(f"start_gs{i}", np_render)
 
-            cv2.waitKey(1)
+            cv2.waitKey(0)
 
     def AddGaussianFrame(self, instance):
         tag = instance[0]

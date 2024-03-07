@@ -10,8 +10,8 @@ from utility import Rot2Quat, QuaternionInfo
 
 class TrackerByPass:
     def __init__(self, dataset, parameters):
-        self.width = 640
-        self.height = 480
+        self.width = 1200
+        self.height = 680
         self.device = "cuda"
         self.xy_one = None
         self.orb = None
@@ -66,8 +66,8 @@ class TrackerByPass:
         self.inv_intr[1][2] = -cy / fy
         self.inv_intr[2][2] = 1
 
-        FoVx = 2*math.atan(640/(2*fx))
-        FoVy = 2*math.atan(480/(2*fy))
+        FoVx = 2*math.atan(1200/(2*fx))
+        FoVy = 2*math.atan(680/(2*fy))
         with torch.no_grad():
             self.projection_matrix = self.getProjectionMatrix(znear=0.01, zfar=100, fovX=FoVx, fovY=FoVy).transpose(0, 1).type(torch.FloatTensor).to(self.device)
 
