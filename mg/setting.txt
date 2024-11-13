@@ -4,8 +4,8 @@ dataset_type = TUM
 path = C:\Users\seohyun423\sp_slam\dataset\TUM_RGBD\rgbd_dataset_freiburg1_desk2\
 
 dataset_type = REPLICA
-path = C:/lab/research/dataset/Replica_old/room_0/Sequence_1/
-novel_view_path = C:/lab/research/dataset/Replica/office_4/Sequence_2/
+path = C:/lab/research/dataset/Replica_old/office_4/Sequence_1/
+novel_view_path = C:/lab/research/dataset/Replica_old/office_4/Sequence_2/
 
 dataset_type = SCANNET
 path = Z:/TeamFolder/GS_SLAM/ScanNet/scans/scene0059_00/out/

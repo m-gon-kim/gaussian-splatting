@@ -46,8 +46,8 @@ class Dataset:
         dataset.path = self.path_dict.get(self.selected_dataset, self.default_dataset_path)
         if isinstance(dataset, ScannetDataset):
             dataset.initialize_info()
-        # elif isinstance(dataset, ReplicaDataset):
-        #     dataset.get_novel_view(self.nv_path)
+        elif isinstance(dataset, ReplicaDataset):
+            dataset.get_novel_view(self.nv_path)
         dataset.relative_poses = dataset.get_relative_poses()
         return dataset
 

@@ -59,6 +59,10 @@ class ReplicaDataset():
             relative_poses.append(relative_pose)
         return relative_poses
 
+        matrices = self.read_matrices(self.path)
+        return matrices
+
+
     def get_nv_relative_poses(self):  # torch
         matrices1 = self.read_matrices(self.path)
         matrices2 = self.read_matrices(self.novel_view_path)

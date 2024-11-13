@@ -110,6 +110,9 @@ class GaussianMapperUnrealNovel:
         self.nv_rgb_path_list = dataset.nv_rgb_list.copy()
         # print("NV_RGB", self.nv_rgb_path_list)
 
+        self.scale_factor = 0.4
+        self.max_iter = 100
+        self.scene_name = "office_4"
 
 
 
@@ -393,6 +396,10 @@ class GaussianMapperUnrealNovel:
         self.gaussian.InitializeOptimizer()
 
     def Evaluate(self):
+        iteration = f"{self.max_iter}"
+        scene_name = f"{self.scene_name}"
+        result_path = f"C:/lab/research/dataset/Replica_old/{scene_name}/Sequence_1/novel_view_iter/iter_{iteration}/"
+
         for i, path in enumerate(self.nv_rgb_path_list):
             gt_img = cv2.imread(path)
             pose = torch.from_numpy(self.nv_pose_list[i]).detach().to(self.device)
@@ -415,24 +422,30 @@ class GaussianMapperUnrealNovel:
             viz_camera_center = self.Eval_camera_center_list[i]
             render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, viz_world_view_transform,
                                    viz_full_proj_transform,
-                                   viz_camera_center, self.gaussian, self.pipe, self.background, 1.0)
+                                   viz_camera_center, self.gaussian, self.pipe, self.background, self.scale_factor)
             img = render_pkg["render"]
             np_render_viz = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
-            torch_render_ssim= torch.permute(img, (1, 2, 0)).detach()
-            np_render_psnr = (np_render_viz * 255).astype(np.uint8)
-            np_render_ssim = torch.clamp(torch_render_ssim, 0, 1)
+            cv2.imwrite(result_path + f"result_{i}.png", np_render_viz * 255)
 
-            img_gt = self.Eval_img_list[i]
-            psnr_value = self.Psnr(np_render_psnr, img_gt)
-            psnr_sum += psnr_value
-            ssim_value = self.Ssim(torch_render_ssim, img_gt)
-            ssim_sum += ssim_value
-            lpips_value = self.Lpips(np_render_ssim, img_gt)
-            lpips_sum += lpips_value
-
-        print(f"Avg_PSNR : {float(psnr_sum / len(self.Eval_img_list))}")
-        print(f"Avg_SSIM : {float(ssim_sum / len(self.Eval_img_list))}")
-        print(f"Avg_LPIPS : {float(lpips_sum / len(self.Eval_img_list))}")
+            # img = render_pkg["render"]
+            #
+            #
+        #     np_render_viz = torch.permute(img, (1, 2, 0)).detach().cpu().numpy()
+        #     torch_render_ssim= torch.permute(img, (1, 2, 0)).detach()
+        #     np_render_psnr = (np_render_viz * 255).astype(np.uint8)
+        #     np_render_ssim = torch.clamp(torch_render_ssim, 0, 1)
+        #
+        #     img_gt = self.Eval_img_list[i]
+        #     psnr_value = self.Psnr(np_render_psnr, img_gt)
+        #     psnr_sum += psnr_value
+        #     ssim_value = self.Ssim(torch_render_ssim, img_gt)
+        #     ssim_sum += ssim_value
+        #     lpips_value = self.Lpips(np_render_ssim, img_gt)
+        #     lpips_sum += lpips_value
+        #
+        # print(f"Avg_PSNR : {float(psnr_sum / len(self.Eval_img_list))}")
+        # print(f"Avg_SSIM : {float(ssim_sum / len(self.Eval_img_list))}")
+        # print(f"Avg_LPIPS : {float(lpips_sum / len(self.Eval_img_list))}")
 
 
 
@@ -468,7 +481,7 @@ class GaussianMapperUnrealNovel:
 
         iter = 0
         # self.gaussian.update_learning_rate(self.iteration)
-        optimization_i_threshold = 10
+        optimization_i_threshold = self.max_iter
         for optimization_i in range(optimization_i_threshold):
             # if optimization_i % 10 == 0:
             #     print("Gaussian Optimization, iteration: ", optimization_i)
@@ -482,7 +495,7 @@ class GaussianMapperUnrealNovel:
                     camera_center = self.camera_center_list[i]
                 render_pkg = mg_render(self.FoVx, self.FoVy, self.height, self.width, world_view_transform,
                                        full_proj_transform, camera_center, self.gaussian, self.pipe, self.background,
-                                       1.0)
+                                       self.scale_factor)
                 img, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg[
                     "viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
 

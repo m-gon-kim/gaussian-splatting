@@ -44,7 +44,6 @@ class TrackerUnreal:
 
 
 
-
     def SetIntrinsics(self, dataset):
         fx, fy, cx, cy = dataset.get_camera_intrinsic()
 
